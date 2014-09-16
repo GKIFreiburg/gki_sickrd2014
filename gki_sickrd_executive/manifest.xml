@@ -1,0 +1,21 @@
+<package>
+  <description brief="gki_sickrd_executive">
+
+     gki_sickrd_executive
+
+  </description>
+  <author>Andreas Hertle</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/gki_sickrd_executive</url>
+  <depend package="rospy"/>
+  <depend package="gki_zerg_bringup"/>
+  <depend package="channel_controller"/>
+  <depend package="hector_slam_launch"/>
+  <depend package="hector_object_tracker"/>
+  <depend package="tf"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+
