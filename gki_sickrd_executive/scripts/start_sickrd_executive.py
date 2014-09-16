@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import roslib; roslib.load_manifest("stage_sickrd")
+import roslib; roslib.load_manifest("gki_sickrd_executive")
 import rospy
 import sys, traceback, math, tf, copy
 import numpy as np
