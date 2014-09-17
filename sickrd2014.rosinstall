@@ -1,0 +1,13 @@
+# IT IS UNLIKELY YOU WANT TO EDIT THIS FILE BY HAND,
+# UNLESS FOR REMOVING ENTRIES.
+# IF YOU WANT TO CHANGE THE ROS ENVIRONMENT VARIABLES
+# USE THE rosinstall TOOL INSTEAD.
+# IF YOU CHANGE IT, USE rosinstall FOR THE CHANGES TO TAKE EFFECT
+- git: {local-name: gki_robots, uri: 'git@github.com:GKIFreiburg/gki_robots.git'}
+- git: {local-name: gki_navigation, uri: 'git@github.com:GKIFreiburg/gki_navigation.git'}
+- svn: {local-name: gki-ros-pkg, uri: 'https://kaspar.informatik.uni-freiburg.de/svn/gki-ros-pkg/trunk'}
+- svn: {local-name: freiburg_tools, uri: 'https://alufr-ros-pkg.googlecode.com/svn/trunk/freiburg_tools'}
+- git: {local-name: iheart-ros-pkg, uri: 'git@github.com:GKIFreiburg/iheart-ros-pkg.git'}
+- git: {local-name: hector_worldmodel, uri: 'git@github.com:tu-darmstadt-ros-pkg/hector_worldmodel.git', version: groovy}
+- git: {local-name: hector_slam, uri: 'git@github.com:tu-darmstadt-ros-pkg/hector_slam.git', version: groovy}
+- git: {local-name: gki_sickrd2014, uri: 'git@github.com:GKIFreiburg/gki_sickrd2014.git'}
