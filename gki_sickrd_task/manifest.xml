@@ -1,0 +1,23 @@
+<package>
+  <description brief="gki_sickrd_task">
+
+     gki_sickrd_task
+
+  </description>
+  <author>Andreas Hertle</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/gki_sickrd_task</url>
+  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="actionlib"/>
+  <depend package="hector_worldmodel_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="visualization_msgs"/>
+  <depend package="gki_utils"/>
+  <depend package="camera_control_msgs"/>
+  <depend package="move_base_msgs"/>
+
+</package>
+
+
