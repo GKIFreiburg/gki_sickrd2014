@@ -63,7 +63,7 @@
           max_height: -0.1
           marker_color: [0.8, 0.8, 0.8]
         negative_update:
-          - topic: axis/camera_info
+          - topic: axis215/camera_info
             min_distance: 2.0
             max_distance: 5.0
             negative_support: 0.5

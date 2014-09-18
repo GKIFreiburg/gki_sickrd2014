@@ -1,0 +1,19 @@
+<launch>
+    <!-- run on base -->
+    <node pkg="screenrun" type="screenrun" name="screenrun_base" args="b" required="true">
+        <rosparam param="programs">
+            -
+                name: dashboard
+                commands:
+                    - rosrun pr2_dashboard pr2_dashboard\015
+            -
+                name: rviz 
+                commands:
+                    - rosrun rviz rviz --display-config $(rospack find gki_sickrd_executive)/rviz.rviz
+            -
+                name: ptz 
+                commands:
+                    - rosrun actionlib axclient.py /axis/axis_control
+        </rosparam>
+    </node>
+</launch>

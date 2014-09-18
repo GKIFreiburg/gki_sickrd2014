@@ -1,0 +1,23 @@
+<launch>
+    <!-- run on zerg -->
+    <node pkg="screenrun" type="screenrun" name="screenrun_zerg" args="b" required="true">
+        <rosparam param="programs">
+            -
+                name: robot
+                commands:
+                    - roslaunch gki_zerg_bringup zerg.launch\015
+            -
+                name: navigation
+                commands:
+                    - roslaunch gki_sickrd_executive navigation_hector_slam.launch
+            -
+                name: worldmodel
+                commands:
+                    - roslaunch gki_sickrd_executive worldmodel.launch
+            -
+                name: task
+                commands:
+                    - rosrun gki_sickrd_task start_sickrd_task
+        </rosparam>
+    </node>
+</launch>
