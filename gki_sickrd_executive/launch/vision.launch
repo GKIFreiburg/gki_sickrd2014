@@ -1,0 +1,6 @@
+<launch>
+    <include file="$(find barcode_number_processing)/launch/number_processing.launch"/>
+
+    <include file="$(find sick_vision_tracker)/launch/banner_vision.launch"/>
+    <include file="$(find sick_vision_tracker)/launch/marker_vision.launch"/>
+</launch>
