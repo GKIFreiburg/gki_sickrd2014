@@ -72,5 +72,7 @@
       <remap from="visualization_marker" to="worldmodel/visualization_marker" />
       <remap from="visualization_marker_array" to="worldmodel/visualization_marker_array" />
     </node>
+
+    <include file="$(find line_feature_detection)/launch/line_feature_detection.launch" />
 </launch>
 
