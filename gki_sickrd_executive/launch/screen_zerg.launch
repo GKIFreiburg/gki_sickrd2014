@@ -3,9 +3,13 @@
     <node pkg="screenrun" type="screenrun" name="screenrun_zerg" args="b" required="true">
         <rosparam param="programs">
             -
+                name: roscore
+                commands:
+                    - roscore\015
+            -
                 name: robot
                 commands:
-                    - roslaunch gki_zerg_bringup zerg.launch\015
+                    - roslaunch --wait gki_zerg_bringup zerg.launch\015
             -
                 name: vision
                 commands:
