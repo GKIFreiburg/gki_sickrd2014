@@ -3,8 +3,7 @@
 <launch>
     <node pkg="hector_object_tracker" type="object_tracker" name="object_tracker" output="screen">
       <param name="project_objects" type="bool" value="false" />
-      <param name="angle_variance" type="double" value="0.121846968"/>
-      <param name="publish_interval" type="double" value="1.0" />
+      <param name="angle_variance" type="double" value="0.241846968"/>
 
       <rosparam>
         number_banner_0:
