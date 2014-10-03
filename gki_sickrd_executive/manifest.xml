@@ -15,6 +15,7 @@
   <depend package="hector_object_tracker"/>
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
+  <depend package="line_feature_detection"/>
 
 </package>
 
