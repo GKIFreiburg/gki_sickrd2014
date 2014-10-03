@@ -37,3 +37,5 @@ class DetectAllBannersStrategy(object):
 		# approach
 		for object in not_visited:
 			# find closest to robot
+			pass
+		
