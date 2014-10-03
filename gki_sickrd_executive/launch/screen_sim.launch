@@ -16,7 +16,7 @@
             -
                 name: task
                 commands:
-                    - rosrun gki_sickrd_task start_sickrd_task
+                    - rosrun gki_sickrd_task start_sickrd_task.py
         </rosparam>
     </node>
 </launch>

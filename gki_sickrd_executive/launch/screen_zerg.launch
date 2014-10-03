@@ -7,6 +7,10 @@
                 commands:
                     - roslaunch gki_zerg_bringup zerg.launch\015
             -
+                name: vision
+                commands:
+                    - roslaunch gki_sickrd_executive vision.launch
+            -
                 name: navigation
                 commands:
                     - roslaunch gki_sickrd_executive navigation_hector_slam.launch
@@ -17,7 +21,7 @@
             -
                 name: task
                 commands:
-                    - rosrun gki_sickrd_task start_sickrd_task
+                    - rosrun gki_sickrd_task start_sickrd_task.py
         </rosparam>
     </node>
 </launch>
