@@ -16,10 +16,8 @@ from gki_sickrd_task.random_move_strategy import RandomMoveStrategy
 
 if __name__ == "__main__":
 	rospy.init_node("sickrd_task", log_level=rospy.INFO)
-	tf_listener = tf.TransformListener()
-	viz_pub = rospy.Publisher('/task/visualization_marker_array', MarkerArray, latch=True)
-	actions = Actions(tf_listener, viz_pub)
-	worldmodel = Worldmodel(tf_listener, viz_pub)
+	actions = Actions()
+	worldmodel = Worldmodel()
 	
 	# strategy
 	strategy = RandomMoveStrategy(actions, worldmodel)

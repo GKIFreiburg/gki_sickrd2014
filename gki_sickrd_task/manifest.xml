@@ -17,7 +17,8 @@
   <depend package="gki_utils"/>
   <depend package="camera_control_msgs"/>
   <depend package="move_base_msgs"/>
-
+  <depend package="nav_msgs"/>
+    
 </package>
 
 

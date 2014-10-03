@@ -13,15 +13,15 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal, MoveBaseResult
 from camera_control_msgs.msg import CameraAction, CameraGoal, CameraResult
 from geometry_msgs.msg import PoseStamped
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
+from gki_sickrd_task.tools import Tools
 
 class Actions(object):
-	def __init__(self, tf_listener, viz_pub):
-		self.tf_listener = tf_listener
+	def __init__(self):
+		self.tools = Tools()
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
 		self.led_client = None
-		self.rnd = random.Random()
-		self.move_timeout_timer = rospy.Timer(0.5, None)
+		self.move_timeout_timer = rospy.Timer(rospy.Duration(0.5), None)
 		
 		self.move_base_timeout = rospy.get_param('move_base_timeout', 30.0)
 		
@@ -30,8 +30,6 @@ class Actions(object):
 				rospy.loginfo('waiting for {} action server...'.format(client.action_client.ns))
 				client.wait_for_server()
 				rospy.loginfo('connected to {} action server'.format(client.action_client.ns))
-		# visualization
-		self.visualization_publisher = viz_pub
 		rospy.loginfo('actions initialized')
 		
 	def create_pose_marker(self, stamped):
@@ -53,8 +51,8 @@ class Actions(object):
 	
 	def random_move(self, done_cb, timeout_cb):
 		stamped = PoseStamped()
-		range = self.rnd.uniform(1.0, 2.5)
-		yaw_offset = self.rnd.uniform(-0.15*math.pi, 0.35*math.pi)
+		range = self.tools.rnd.uniform(1.0, 2.5)
+		yaw_offset = self.tools.rnd.uniform(-0.15*math.pi, 0.35*math.pi)
 		stamped.pose.position.x = range * math.cos(yaw_offset)
 		stamped.pose.position.y = range * math.sin(yaw_offset)
 		quat = tf.transformations.quaternion_from_euler(0, 0, yaw_offset)
@@ -74,8 +72,8 @@ class Actions(object):
 		goal = MoveBaseGoal()
 		goal.target_pose = stamped
 		msg = MarkerArray()
-		msg.markers.append(self.create_pose_marker(stamped))
-		self.visualization_publisher.publish(msg)
+		msg.markers.append(self.tools.create_pose_marker(stamped))
+		self.tools.visualization_publisher.publish(msg)
 		self.move_timeout_timer = rospy.Timer(rospy.Duration(self.move_base_timeout), timeout_cb, oneshot=True)
 		self.move_base_client.send_goal(goal, done_cb=done_cb)
 	
@@ -84,7 +82,7 @@ class Actions(object):
 			self.move_timeout_timer.shutdown()
 			
 	def look_at(self, stamped, done_cb):
-		ps = self.tf_listener.transformPose('axis_link', stamped)
+		ps = Tools.tf_listener.transformPose('axis_link', stamped)
 		yaw = math.atan2(ps.pose.position.y, ps.pose.position.x)
 		pitch = math.atan2(ps.pose.position.z, ps.pose.position.x)
 		self.look_to(done_cb, yaw, pitch)
@@ -102,15 +100,4 @@ class Actions(object):
 		goal.pan = yaw
 		goal.tilt = pitch
 		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
-	
-	def get_current_pose(self, global_frame='map'):
-		pose = PoseStamped()
-		pose.pose.orientation.w = 1
-		pose.header.frame_id = 'base_footprint'
-		return self.tf_listener.transformPose(target_frame=global_frame, ps=pose)
-	
-	def xy_distance(self, ps1, ps2):
-		if ps1.header.frame_id != ps2.header.frame_id:
-			ps2 = self.tf_listener.transformPose(target_frame=ps1.header.frame_id, ps=ps2)
-		return math.hypot(ps1.pose.position.x-ps2.pose.position.x, ps1.pose.position.y-ps2.pose.position.y)
 	
