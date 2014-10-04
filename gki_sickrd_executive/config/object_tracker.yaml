@@ -57,7 +57,7 @@ isolated_lines:
   active_support: 1.0
   min_height: -0.2
   max_height: 0.2
-  marker_color: [0.8, 0.8, 0.8]
+  marker_color: [0.8, 0.4, 0.8]
 negative_update:
   - topic: axis215/camera_info
     min_distance: 2.0
