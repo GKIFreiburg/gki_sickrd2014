@@ -107,6 +107,7 @@ class Worldmodel(object):
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(stamped, ns='worldmodel/map_center', z_offset=0.2))
 		msg.markers[-1].color.b = 0.8
+		msg.markers[-1].type = Marker.CYLINDER
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
 	
@@ -131,13 +132,22 @@ class Worldmodel(object):
 		msg.markers.append(self.tools.create_pose_marker(stamped, ns='worldmodel/model_center', z_offset=0.2))
 		msg.markers[-1].color.b = 0.8
 		msg.markers[-1].color.g = 0.8
+		msg.markers[-1].type = Marker.CYLINDER
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
 	
 	def sample_scan_pose(self):
 		center = self.estimate_center_from_map()
 		current = self.tools.get_current_pose()
-		map_yaw = self.tools.rnd.sample_uni
+		distance = 0.0
+		while distance < 2.0:
+			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
+			center_distance = self.tools.rnd.uniform(self.optimal_exploration_distance*0.75, self.optimal_exploration_distance*1.33)
+			scan = copy.deepcopy(center)
+			scan.pose.position.x += center_distance * math.sin(map_yaw)
+			scan.pose.position.y += center_distance * math.cos(map_yaw)
+			distance = self.tools.xy_distance(current, scan)
+		return scan
 	
 	def get_number(self, number):
 		number_class = 'number_banner_{}'.format(number)

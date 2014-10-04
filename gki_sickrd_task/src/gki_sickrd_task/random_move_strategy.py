@@ -36,7 +36,9 @@ class RandomMoveStrategy(object):
 			
 			# explore
 			rospy.loginfo('exploring...')
-			self.actions.random_move(self.move_done_cb, self.move_timeout_cb)
+			exploration_pose = self.worldmodel.sample_scan_pose()
+			self.actions.move_to(exploration_pose, self.move_done_cb, self.move_timeout_cb)
+			
 		except Exception as e:
 			rospy.logwarn('exception: '+e.message)
 			rospy.sleep(1.0)

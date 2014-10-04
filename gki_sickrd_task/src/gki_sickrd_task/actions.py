@@ -21,7 +21,7 @@ class Actions(object):
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
 		self.led_client = None
-		self.move_timeout_timer = rospy.Timer(rospy.Duration(0.5), None)
+		self.move_timeout_timer = None #rospy.Timer(rospy.Duration(0.5), None)
 		
 		self.move_base_timeout = rospy.get_param('move_base_timeout', 30.0)
 		
@@ -78,6 +78,8 @@ class Actions(object):
 		self.move_base_client.send_goal(goal, done_cb=done_cb)
 	
 	def cancel_move_timeout(self):
+		if not self.move_timeout_timer:
+			return 
 		if self.move_timeout_timer.is_alive():
 			self.move_timeout_timer.shutdown()
 			
