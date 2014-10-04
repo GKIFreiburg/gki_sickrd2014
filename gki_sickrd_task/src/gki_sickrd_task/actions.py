@@ -21,9 +21,13 @@ class Actions(object):
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
 		self.led_client = None
-		self.move_timeout_timer = None #rospy.Timer(rospy.Duration(0.5), None)
+		self.move_timeout_timer = None
 		
 		self.move_base_timeout = rospy.get_param('move_base_timeout', 30.0)
+		self.axis_pan = rospy.get_param('axis_pan', 0.0)
+		self.axis_tilt = rospy.get_param('axis_tilt', -0.3)
+		self.axis_sweep_duration = rospy.get_param('axis_sweep_duration', 2.0)
+		self.axis_sweep_angle = rospy.get_param('axis_sweep_angle', 0.3)
 		
 		for client in [self.move_base_client, self.camera_ptz_client, self.led_client]:
 			if client:
@@ -32,23 +36,6 @@ class Actions(object):
 				rospy.loginfo('connected to {} action server'.format(client.action_client.ns))
 		rospy.loginfo('actions initialized')
 		
-	def create_pose_marker(self, stamped):
-		marker = Marker()
-		marker.type = Marker.ARROW
-		marker.action = Marker.ADD
-		marker.color.a = 0.8
-		marker.color.r = 0.8
-		marker.color.g = 0.2
-		marker.color.b = 0.2
-		marker.scale.x = 0.2
-		marker.scale.y = 0.1
-		marker.scale.z = 0.1
-		marker.pose = copy.deepcopy(stamped.pose)
-		marker.pose.position.z += 0.2
-		marker.header = stamped.header
-		marker.ns = 'actions'
-		return marker
-	
 	def random_move(self, done_cb, timeout_cb):
 		stamped = PoseStamped()
 		range = self.tools.rnd.uniform(1.0, 2.5)
@@ -89,14 +76,14 @@ class Actions(object):
 		pitch = math.atan2(ps.pose.position.z, ps.pose.position.x)
 		self.look_to(done_cb, yaw, pitch)
 	
-	def camera_sweep(self, done_cb, delta_yaw=0.3, duration=0.5, zoom=1):
+	def camera_sweep(self, done_cb, delta_yaw=self.axis_sweep_angle, duration=self.axis_sweep_duration, zoom=1):
 		goal = CameraGoal()
 		goal.command = 2 #sweep
 		goal.sweep_step = delta_yaw
 		goal.sweep_hold_time = duration
 		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
 	
-	def look_to(self, done_cb, yaw=0.0, pitch=-0.1, zoom=1):
+	def look_to(self, done_cb, yaw=self.axis_pan, pitch=self.axis_tilt, zoom=1):
 		goal = CameraGoal()
 		goal.command = 1
 		goal.pan = yaw

@@ -27,6 +27,7 @@ class Worldmodel(object):
 	def __init__(self):
 		self.tools = Tools()
 		self.optimal_exploration_distance = rospy.get_param('optimal_exploration_distance', 3.0)
+		self.minimum_travel_distance_for_rescan = rospy.get_param('minimum_travel_distance_for_rescan', 2.0)
 		self.model = None
 		self.numbers = {}
 		self.targets = {}
@@ -140,7 +141,7 @@ class Worldmodel(object):
 		center = self.estimate_center_from_map()
 		current = self.tools.get_current_pose()
 		distance = 0.0
-		while distance < 2.0:
+		while distance < self.minimum_travel_distance_for_rescan:
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(self.optimal_exploration_distance*0.75, self.optimal_exploration_distance*1.33)
 			scan = copy.deepcopy(center)

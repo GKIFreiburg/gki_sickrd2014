@@ -20,7 +20,7 @@
             -
                 name: task
                 commands:
-                    - rosrun gki_sickrd_task start_sickrd_task.py
+                    - roslaunch gki_sickrd_task sickrd_task.launch
             -
                 name: rviz 
                 commands:
