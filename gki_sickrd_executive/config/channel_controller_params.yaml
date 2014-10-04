@@ -1,4 +1,4 @@
-controller_frequency: 10.0
+controller_frequency: 20.0
 ChannelController:
   safe_waypoint_channel_width: 0.5
   safe_channel_width: 0.4
