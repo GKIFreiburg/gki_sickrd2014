@@ -6,9 +6,9 @@ import sys, traceback, math, copy, random
 import numpy as np
 import tf
 
-from visualization_msgs.msg import MarkerArray, Marker
+from gki_sickrd_task.params import Params
 from gki_sickrd_task.actions import Actions
-from gki_sickrd_task.worldmodel import Worldmodel
+from gki_sickrd_task.percepts import Percepts
 from gki_sickrd_task.random_move_strategy import RandomMoveStrategy
 
 # def xy_distance(point1, point2):
@@ -16,12 +16,14 @@ from gki_sickrd_task.random_move_strategy import RandomMoveStrategy
 
 if __name__ == "__main__":
 	rospy.init_node("sickrd_task", log_level=rospy.INFO)
+	Params.update()
 	actions = Actions()
-	worldmodel = Worldmodel()
+	percepts = Percepts()
 	
 	# strategy
-	strategy = RandomMoveStrategy(actions, worldmodel)
-	strategy.decide()
+	strategy = RandomMoveStrategy(actions, percepts)
+	decision_timer = rospy.Timer(rospy.Duration(1.0), strategy.decide)
+	
 	
 	rospy.spin()
 	

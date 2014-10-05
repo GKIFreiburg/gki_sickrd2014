@@ -3,5 +3,5 @@ minimum_travel_distance_for_rescan: 2.0
 move_base_timeout: 30.0
 axis_pan: 0.0
 axis_tilt: -0.3
-axis_sweep_duration: 2.0
+axis_sweep_duration: 1.0
 axis_sweep_angle: 0.3
