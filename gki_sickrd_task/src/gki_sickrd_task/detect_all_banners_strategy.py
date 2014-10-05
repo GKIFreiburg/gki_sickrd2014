@@ -10,21 +10,21 @@ from gki_sickrd_task.actions import Actions
 class DetectAllBannersStrategy(object):
 	def __init__(self, actions):
 		self.actions = actions
-		self.worldmodel = None
+		self.percepts = None
 		self.visited = set()
 	
 	def worldmodel_cb(self, msg):
-		self.worldmodel = msg
+		self.percepts = msg
 	
 	def decide(self):
-		if not self.worldmodel:
+		if not self.percepts:
 			return
 		
 		if len(self.visited) >= 10:
 			rospy.loginfo('finished.')
 		
 		not_visited = set()
-		for object in self.worldmodel.objects:
+		for object in self.percepts.objects:
 			if object not in visited:
 				not_visited.add(object)
 		

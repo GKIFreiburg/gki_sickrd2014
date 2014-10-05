@@ -2,9 +2,13 @@
     <node pkg="screenrun" type="screenrun" name="screenrun_sim" args="b" required="true">
         <rosparam param="programs">
             -
+                name: roscore
+                commands:
+                    - roscore\015
+            -
                 name: robot
                 commands:
-                    - roslaunch stage_sickrd sickrd2014_zerg.launch\015
+                    - roslaunch --wait stage_sickrd sickrd2014_zerg.launch\015
             -
                 name: navigation
                 commands:
@@ -16,7 +20,15 @@
             -
                 name: task
                 commands:
-                    - rosrun gki_sickrd_task start_sickrd_task.py
+                    - roslaunch gki_sickrd_task sickrd_task.launch
+            -
+                name: rviz 
+                commands:
+                    - rosrun rviz rviz --display-config $(rospack find gki_sickrd_executive)/rviz.rviz
+            -
+                name: ptz 
+                commands:
+                    - rosrun actionlib axclient.py /axis/axis_control
         </rosparam>
     </node>
 </launch>

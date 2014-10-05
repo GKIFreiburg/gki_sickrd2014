@@ -8,7 +8,6 @@ Panels:
         - /Status1
         - /TF1/Frames1
         - /PathFollower1/Namespaces1
-        - /World Model1/Status1
         - /Simulation1/Namespaces1
         - /Task1
         - /Task1/Namespaces1
@@ -150,6 +149,23 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        front_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_camera_optical_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_camera_panned_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_camera_tilted_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         imu_link:
           Alpha: 1
           Show Axes: false
@@ -259,16 +275,7 @@ Visualization Manager:
       Marker Topic: /worldmodel/visualization_marker_array
       Name: World Model
       Namespaces:
-        isolated_lines: true
-        number_banner_1: true
-        number_banner_3: true
-        number_banner_4: true
-        number_banner_5: true
-        number_banner_6: true
-        number_banner_7: true
-        number_banner_8: true
-        number_banner_9: true
-        target_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -293,9 +300,7 @@ Visualization Manager:
       Marker Topic: /task/visualization_marker_array
       Name: Task
       Namespaces:
-        "": true
-        worldmodel/map_center: true
-        worldmodel/model_center: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -321,17 +326,17 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 16.7178
+      Distance: 6.0123
       Focal Point:
-        X: -0.906469
-        Y: 4.33257
+        X: 0.639137
+        Y: 0.550587
         Z: -9.53069e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.5698
+      Pitch: 1.0498
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 0.999019
+      Yaw: 3.21402
     Saved: ~
 Window Geometry:
   Displays:
@@ -349,5 +354,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1631
-  X: 49
+  X: 42
   Y: 24

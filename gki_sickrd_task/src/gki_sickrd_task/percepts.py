@@ -10,6 +10,7 @@ import tf
 import tf_conversions.posemath as pm
 import PyKDL
 from gki_sickrd_task.tools import Tools
+from gki_sickrd_task.params import Params
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, PoseWithCovariance
 from nav_msgs.msg import OccupancyGrid
@@ -23,36 +24,17 @@ class NotEnoughDataException(Exception):
 		self.message = message
 
 
-class Worldmodel(object):
+class Percepts(object):
 	def __init__(self):
 		self.tools = Tools()
-		self.optimal_exploration_distance = rospy.get_param('optimal_exploration_distance', 3.0)
-		self.model = None
 		self.numbers = {}
 		self.targets = {}
-		self.worldmodel = None
+		self.model = None
 		self.worldmodel_subscriber = rospy.Subscriber('/worldmodel/objects', ObjectModel, self.worldmodel_cb)
 		self.map = None
 		self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
 		rospy.loginfo('worldmodel initialized')
 		
-	def create_pose_marker(self, stamped):
-		marker = Marker()
-		marker.type = Marker.ARROW
-		marker.action = Marker.ADD
-		marker.color.a = 0.8
-		marker.color.r = 0.2
-		marker.color.g = 0.2
-		marker.color.b = 0.8
-		marker.scale.x = 0.2
-		marker.scale.y = 0.1
-		marker.scale.z = 0.1
-		marker.pose = copy.deepcopy(stamped.pose)
-		marker.pose.position.z += 0.2
-		marker.header = stamped.header
-		marker.ns = 'worldmodel'
-		return marker
-	
 	def worldmodel_cb(self, msg):
 		#rospy.loginfo('new model data')
 		self.model = msg
@@ -107,6 +89,7 @@ class Worldmodel(object):
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(stamped, ns='worldmodel/map_center', z_offset=0.2))
 		msg.markers[-1].color.b = 0.8
+		msg.markers[-1].type = Marker.CYLINDER
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
 	
@@ -131,13 +114,23 @@ class Worldmodel(object):
 		msg.markers.append(self.tools.create_pose_marker(stamped, ns='worldmodel/model_center', z_offset=0.2))
 		msg.markers[-1].color.b = 0.8
 		msg.markers[-1].color.g = 0.8
+		msg.markers[-1].type = Marker.CYLINDER
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
 	
 	def sample_scan_pose(self):
 		center = self.estimate_center_from_map()
 		current = self.tools.get_current_pose()
-		map_yaw = self.tools.rnd.sample_uni
+		distance = 0.0
+		scan_distance = Params.get().optimal_exploration_distance
+		while distance < Params.get().minimum_travel_distance_for_rescan:
+			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
+			center_distance = self.tools.rnd.uniform(scan_distance*0.75, scan_distance*1.33)
+			scan = copy.deepcopy(center)
+			scan.pose.position.x += center_distance * math.sin(map_yaw)
+			scan.pose.position.y += center_distance * math.cos(map_yaw)
+			distance = self.tools.xy_distance(current, scan)
+		return scan
 	
 	def get_number(self, number):
 		number_class = 'number_banner_{}'.format(number)
