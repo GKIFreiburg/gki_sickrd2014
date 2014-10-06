@@ -1,12 +1,17 @@
-controller_frequency: 10.0
+controller_frequency: 20.0
 ChannelController:
-  safe_waypoint_channel_width: 0.5
-  safe_channel_width: 0.4
+  safe_waypoint_channel_width: 0.65
+  safe_channel_width: 0.5
+
+  channel_score_da: 1.0
+  channel_score_dist: 0.3
+
+  max_channel_length: 3.0
 
   min_get_to_safe_dist_time: 7.0
   max_get_to_safe_dist_time: 20.0
-  waypoint_reached_dist: 1.3
-  waypoint_reached_angle: 15.0
+  waypoint_reached_dist: 0.6
+  waypoint_reached_angle: 7.0
 
   goal_reached_dist: 0.15
   goal_reached_angle: 0.17

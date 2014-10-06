@@ -1,6 +1,6 @@
 <launch>
 
-  <include file="$(find turtlebot_navigation)/launch/includes/_velocity_smoother.launch"/>
+  <!--include file="$(find turtlebot_navigation)/launch/includes/_velocity_smoother.launch"/-->
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 

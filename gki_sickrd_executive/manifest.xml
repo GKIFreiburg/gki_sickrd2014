@@ -16,6 +16,9 @@
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
   <depend package="line_feature_detection"/>
+  <depend package="screenrun"/>
+  <depend package="barcode_number_processing"/>
+  <depend package="hector_qrcode_detection"/>
 
 </package>
 
