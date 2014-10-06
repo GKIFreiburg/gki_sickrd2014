@@ -16,9 +16,6 @@ from geometry_msgs.msg import PoseStamped, PoseWithCovariance
 from nav_msgs.msg import OccupancyGrid
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
 
-class NumberNotFoundException(Exception):
-	def __init__(self, number):
-		self.message = 'no instance of banner with value {} are known.'.format(number)
 class NotEnoughDataException(Exception):
 	def __init__(self, message):
 		self.message = message
@@ -27,34 +24,28 @@ class NotEnoughDataException(Exception):
 class Percepts(object):
 	def __init__(self):
 		self.tools = Tools()
-		self.numbers = {}
-		self.targets = {}
 		self.model = None
 		self.worldmodel_subscriber = rospy.Subscriber('/worldmodel/objects', ObjectModel, self.worldmodel_cb)
+		self.estimated_map_center = None
 		self.map = None
+		self.map_center_need_update = False
 		self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
-		rospy.loginfo('worldmodel initialized')
+		rospy.loginfo('percepts initialized')
 		
 	def worldmodel_cb(self, msg):
 		#rospy.loginfo('new model data')
 		self.model = msg
-# 		for object in self.model.objects:
-# 			if object.info.class_id == 'target_marker':
-# 				self.targets[object.info.object_id] = object
-# 			else:
-# 				if object.info.class_id not in self.numbers:
-# 					self.numbers[object.info.class_id] = {}
-# 				self.numbers[object.info.class_id][object.info.object_id] = object
-				
+
 	def map_cb(self, msg):
 		#rospy.loginfo('new map data')
 		self.map = msg
-	
+		self.map_center_need_update = True
+
 	def xy_distance(self, ps1, ps2):
 		if ps1.header.frame_id != ps2.header.frame_id:
 			ps2 = self.tools.tf_listener.transformPose(target_frame=ps1.header.frame_id, ps=ps2)
 		return math.hypot(ps1.pose.position.x-ps2.pose.position.x, ps1.pose.position.y-ps2.pose.position.y)
-	
+
 	def map_to_world(self, x, y):
 		if not self.map:
 			raise NotEnoughDataException('no map data received.')
@@ -67,10 +58,12 @@ class Percepts(object):
 		center_transform = pm.fromMsg(stamped.pose)
 		stamped.pose = pm.toMsg(origin_transform * center_transform)
 		return stamped
-	
+
 	def estimate_center_from_map(self):
 		if not self.map:
 			raise NotEnoughDataException('no map data received.')
+		if self.estimated_map_center and not self.map_center_need_update:
+			return self.estimated_map_center
 		map = self.map
 		# estimate center cell based on free cells
 		mean_x = 0
@@ -85,14 +78,15 @@ class Percepts(object):
 					mean_x += x
 					mean_y += y
 					counter += 1
-		stamped = self.map_to_world(mean_x / float(counter), mean_y / float(counter))
+		self.estimated_map_center = self.map_to_world(mean_x / float(counter), mean_y / float(counter))
 		msg = MarkerArray()
-		msg.markers.append(self.tools.create_pose_marker(stamped, ns='worldmodel/map_center', z_offset=0.2))
+		msg.markers.append(self.tools.create_pose_marker(self.estimated_map_center, ns='worldmodel/map_center', z_offset=0.2))
 		msg.markers[-1].color.b = 0.8
 		msg.markers[-1].type = Marker.CYLINDER
 		self.tools.visualization_publisher.publish(msg)
-		return stamped
-	
+		self.map_center_need_update = False
+		return self.estimated_map_center
+
 	def estimate_center_from_worldmodel(self):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel data received.')
@@ -117,7 +111,51 @@ class Percepts(object):
 		msg.markers[-1].type = Marker.CYLINDER
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
-	
+
+	def get_loading_stations(self):
+		center = self.estimate_center_from_map()
+		if not self.model:
+			raise NotEnoughDataException('no worldmodel data received.')
+		model = self.model
+		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < 2.0]
+		if len(lines) == 0:
+			raise NotEnoughDataException('no known loading stations.')
+		return lines
+
+	def get_number(self, number):
+		if not self.model:
+			raise NotEnoughDataException('no worldmodel data received.')
+		number_class = 'number_banner_{}'.format(number)
+		model = self.model
+		banners = [object for object in self.model.objects if object.info.class_id == number_class]
+		if len(banners) == 0:
+			raise NotEnoughDataException('number not found: {}'.format(number))
+		banners.sort(key=lambda object: object.info.support)
+		return banners[0]
+
+	def sample_approach_pose(self, stamped):
+		center = self.estimate_center_from_map()
+		if stamped.header.frame_id != center.header.frame_id:
+			approach = self.tools.transform_pose(center.header.frame_id, stamped)
+		else:
+			approach = copy.deepcopy(stamped)
+		map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
+		if self.tools.xy_distance(center, approach) < Params.get().optimal_exploration_distance:
+			# project outward
+			approach.pose.position.x += Params.get().approach_distance * math.sin(map_yaw)
+			approach.pose.position.y += Params.get().approach_distance * math.cos(map_yaw)
+			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + math.pi)
+		else:
+			# project inward
+			approach.pose.position.x -= Params.get().approach_distance * math.sin(map_yaw)
+			approach.pose.position.y -= Params.get().approach_distance * math.cos(map_yaw)
+			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + math.pi)
+		approach.pose.orientation.x = rotation[0]
+		approach.pose.orientation.y = rotation[1]
+		approach.pose.orientation.z = rotation[2]
+		approach.pose.orientation.w = rotation[3]
+		return stamped
+
 	def sample_scan_pose(self):
 		center = self.estimate_center_from_map()
 		current = self.tools.get_current_pose()
@@ -131,14 +169,17 @@ class Percepts(object):
 			scan.pose.position.y += center_distance * math.cos(map_yaw)
 			distance = self.tools.xy_distance(current, scan)
 		return scan
+
+	def wait_for_cube_sensor_change(self, done_cb):
+		# clear msg
+		# enable cube sensor
+		# enable barcode detector
+		# wait for change in value
+		# trigger cb
+		pass
 	
-	def get_number(self, number):
-		number_class = 'number_banner_{}'.format(number)
-		if number_class not in self.numbers:
-			raise NumberNotFoundException(number)
-		if len(self.numbers[number_class]) == 0:
-			raise NumberNotFoundException(number)
-		confidence_sorted = sorted(self.numbers[number_class].values(), lambda object: object.info.support)
-		return confidence_sorted[0]
-	
-	
+	def cube_sensor_cb(self, msg):
+		pass
+
+	def barcode_cb(self, msg):
+		pass

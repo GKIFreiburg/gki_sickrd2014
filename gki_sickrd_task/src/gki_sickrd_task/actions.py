@@ -20,11 +20,13 @@ class Actions(object):
 	def __init__(self):
 		self.tools = Tools()
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
+		self.approach_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
-		self.led_client = None
+		# FIXME: self.led_client = rospy.ServiceProxy('led', service_class)
 		self.move_timeout_timer = None
+		self.cube_timeout_timer = None
 
-		for client in [self.move_base_client, self.camera_ptz_client, self.led_client]:
+		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client, self.led_client]:
 			if client:
 				rospy.loginfo('waiting for {} action server...'.format(client.action_client.ns))
 				client.wait_for_server()
@@ -49,7 +51,7 @@ class Actions(object):
 	def stop(self):
 		self.cancel_move_timeout()
 		self.move_base_client.cancel_all_goals()
-		
+
 	def move_to(self, stamped, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose = stamped
@@ -58,6 +60,32 @@ class Actions(object):
 		self.tools.visualization_publisher.publish(msg)
 		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
 		self.move_base_client.send_goal(goal, done_cb=done_cb)
+
+	def approach(self, done_cb, timeout_cb):
+		goal = MoveBaseGoal()
+		goal.target_pose.header.frame_id = 'base_footprint'
+		goal.target_pose.pose.position.x = 0.5 * Params.get().approach_distance
+		goal.target_pose.pose.orientation.w = 1
+		msg = MarkerArray()
+		msg.markers.append(self.tools.create_pose_marker(stamped))
+		msg.markers[-1].color.r = 0.8
+		msg.markers[-1].color.g = 0.8
+		self.tools.visualization_publisher.publish(msg)
+		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
+		self.approach_client.send_goal(goal, done_cb=done_cb)
+
+	def retreat(self, done_cb, timeout_cb):
+		goal = MoveBaseGoal()
+		goal.target_pose.header.frame_id = 'base_footprint'
+		goal.target_pose.pose.position.x = -0.5 * Params.get().approach_distance
+		goal.target_pose.pose.orientation.w = 1
+		msg = MarkerArray()
+		msg.markers.append(self.tools.create_pose_marker(stamped))
+		msg.markers[-1].color.r = 0.8
+		msg.markers[-1].color.g = 0.8
+		self.tools.visualization_publisher.publish(msg)
+		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
+		self.approach_client.send_goal(goal, done_cb=done_cb)
 
 	def cancel_move_timeout(self):
 		if not self.move_timeout_timer:
@@ -85,3 +113,18 @@ class Actions(object):
 		goal.pan = yaw
 		goal.tilt = pitch
 		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
+
+	def wait_for_cube_operation(self, timeout_cb):
+		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params.get().cube_timeout), timeout_cb, oneshot=True)
+
+	def cancel_cube_timeout(self):
+		if not self.cube_timeout_timer:
+			return 
+		if self.cube_timeout_timer.is_alive():
+			self.cube_timeout_timer.shutdown()
+
+	def enable_LEDs(self):
+		pass
+
+	def disable_LEDs(self):
+		pass

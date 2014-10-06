@@ -1,5 +1,8 @@
+max_loading_station_distance_from_center: 2.0
 optimal_exploration_distance: 3.0
+approach_distance: 1.0
 minimum_travel_distance_for_rescan: 2.0
+cube_timeout: 30.0
 move_base_timeout: 30.0
 axis_pan: 0.0
 axis_tilt: -0.3

@@ -44,14 +44,24 @@ class Tools(object):
 		marker.id = id
 		return marker
 	
-	def get_current_pose(self, global_frame='map'):
+	def get_current_pose(self, frame_id='map'):
 		pose = PoseStamped()
 		pose.pose.orientation.w = 1
 		pose.header.frame_id = 'base_footprint'
-		return self.tf_listener.transformPose(target_frame=global_frame, ps=pose)
+		return self.tf_listener.transformPose(target_frame=frame_id, ps=pose)
 	
+	def transform_pose(self, frame_id, stamped):
+		return self.tf_listener.transformPose(target_frame=frame_id, ps=stamped)
+	
+	def xy_distance_to_robot(self, ps2):
+		ps1 = self.get_current_pose(ps2.header.frame_id)
+		return self.xy_point_distance(ps1.pose.position, ps2.pose.position)
+
 	def xy_distance(self, ps1, ps2):
 		if ps1.header.frame_id != ps2.header.frame_id:
-			ps2 = self.tf_listener.transformPose(target_frame=ps1.header.frame_id, ps=ps2)
-		return math.hypot(ps1.pose.position.x-ps2.pose.position.x, ps1.pose.position.y-ps2.pose.position.y)
+			ps2 = self.transform_pose(target_frame=ps1.header.frame_id, ps=ps2)
+		return self.xy_point_distance(ps1.pose.position, ps2.pose.position)
+
+	def xy_point_distance(self, p1, p2):
+		return math.hypot(p1.x-p2.x, p1.y-p2.y)
 	
