@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="disable_poseupdate" default="false" />
+  <arg name="disable_poseupdate" default="true" />
 
   <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
     <param name="base_frame" value="base_footprint" />
