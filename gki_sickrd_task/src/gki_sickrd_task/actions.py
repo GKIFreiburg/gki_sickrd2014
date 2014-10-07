@@ -114,7 +114,7 @@ class Actions(object):
 		goal.tilt = pitch
 		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
 
-	def wait_for_cube_operation(self, timeout_cb):
+	def start_cube_operation_timer(self, timeout_cb):
 		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params.get().cube_timeout), timeout_cb, oneshot=True)
 
 	def cancel_cube_timeout(self):

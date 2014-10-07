@@ -14,6 +14,8 @@ from gki_sickrd_task.params import Params
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, PoseWithCovariance
 from nav_msgs.msg import OccupancyGrid
+from std_msgs.msg import Bool, Int32
+from std_srvs.srv import Empty
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
 
 class NotEnoughDataException(Exception):
@@ -30,21 +32,13 @@ class Percepts(object):
 		self.map = None
 		self.map_center_need_update = False
 		self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
+		self.cube = None
+		self.cube_subscriber = rospy.Subscriber('/cube_sensor', Bool, self.cube_sensor_cb)
+		self.barcode_enable_service = rospy.ServiceProxy('/barcode_processing/enable_detection', Empty)
+		self.barcode_disable_service = rospy.ServiceProxy('/barcode_processing/disable_detection', Empty)
+		self.barcode = None
+		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
 		rospy.loginfo('percepts initialized')
-		
-	def worldmodel_cb(self, msg):
-		#rospy.loginfo('new model data')
-		self.model = msg
-
-	def map_cb(self, msg):
-		#rospy.loginfo('new map data')
-		self.map = msg
-		self.map_center_need_update = True
-
-	def xy_distance(self, ps1, ps2):
-		if ps1.header.frame_id != ps2.header.frame_id:
-			ps2 = self.tools.tf_listener.transformPose(target_frame=ps1.header.frame_id, ps=ps2)
-		return math.hypot(ps1.pose.position.x-ps2.pose.position.x, ps1.pose.position.y-ps2.pose.position.y)
 
 	def map_to_world(self, x, y):
 		if not self.map:
@@ -170,16 +164,22 @@ class Percepts(object):
 			distance = self.tools.xy_distance(current, scan)
 		return scan
 
-	def wait_for_cube_sensor_change(self, done_cb):
-		# clear msg
-		# enable cube sensor
-		# enable barcode detector
-		# wait for change in value
-		# trigger cb
-		pass
-	
+	def enable_barcode_detection(self):
+		self.barcode_enable_service.call()
+
+	def disable_barcode_detection(self):
+		self.barcode_disable_service.call()
+
+	def worldmodel_cb(self, msg):
+		self.model = msg
+
+	def map_cb(self, msg):
+		self.map = msg
+		self.map_center_need_update = True
+
 	def cube_sensor_cb(self, msg):
-		pass
+		self.cube = msg
 
 	def barcode_cb(self, msg):
-		pass
+		self.barcode = msg
+
