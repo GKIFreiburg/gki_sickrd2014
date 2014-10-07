@@ -59,7 +59,7 @@ class DeliverCubesStrategy(object):
 					return
 
 			# drive and camera operations
-			if not self.percepts.cube.value:
+			if not self.percepts.cube_loaded():
 				try:
 					# approach loading station
 					self.approach_loading_station()
@@ -82,11 +82,10 @@ class DeliverCubesStrategy(object):
 			rospy.sleep(1.0)
 
 	def load_cube(self):
-		if not self.percepts.cube.value:
+		if not self.percepts.cube_loaded():
 			return # wait 
 		if self.percepts.barcode.value == -1:
 			return # wait 
-		self.current_number = self.percepts.barcode.value
 		self.percepts.disable_barcode_detection()
 		self.loading_cube = False
 		self.actions.cancel_cube_timeout()
@@ -94,7 +93,7 @@ class DeliverCubesStrategy(object):
 	def unload_cube(self):
 		if self.percepts.cube.value:
 			return # wait 
-		self.current_number = -1
+		self.percepts.clear_number()
 		self.loading_cube = False
 		self.actions.cancel_cube_timeout()
 
@@ -115,18 +114,16 @@ class DeliverCubesStrategy(object):
 		self.decision_required = False
 
 	def approach_number(self):
-		number = self.percepts.get_number(self.current_number)
-		if number == -1:
-			# TODO: recovery?!
-			raise NotEnoughDataException('cube present, but no number detected.')
+		number = self.percepts.current_number()
+		banner = self.percepts.get_number_banner(number)
 		stamped = PoseStamped()
-		stamped.header = number.header
-		stamped.pose = number.pose.pose
+		stamped.header = banner.header
+		stamped.pose = banner.pose.pose
 		if self.tools.xy_distance_to_robot(stamped) < 1.1 * Params.get().approach_distance:
-			rospy.loginfo('approaching number {}...'.format(self.current_number))
+			rospy.loginfo('approaching number {}...'.format(number))
 			self.actions.approach(self.approach_number_done_cb, self.approach_timeout_cb)
 		else:
-			rospy.loginfo('moving to number {}...'.format(self.current_number))
+			rospy.loginfo('moving to number {}...'.format(number))
 			approach = self.percepts.sample_approach_pose(stamped)
 			self.actions.move_to(approach, self.move_base_cd, self.move_timeout_cb)
 		self.decision_required = False

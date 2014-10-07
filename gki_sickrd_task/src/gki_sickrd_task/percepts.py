@@ -42,7 +42,7 @@ class Percepts(object):
 
 	def map_to_world(self, x, y):
 		if not self.map:
-			raise NotEnoughDataException('no map data received.')
+			raise NotEnoughDataException('no map message received.')
 		stamped = PoseStamped()
 		stamped.header.frame_id = self.map.header.frame_id
 		stamped.pose.position.x = x * self.map.info.resolution
@@ -53,9 +53,24 @@ class Percepts(object):
 		stamped.pose = pm.toMsg(origin_transform * center_transform)
 		return stamped
 
+	def cube_loaded(self):
+		if not self.cube:
+			raise NotEnoughDataException('no cube sensor message received.')
+		return self.cube.value
+
+	def current_number(self):
+		if not self.barcode:
+			raise NotEnoughDataException('no barcode detection message received.')
+		if self.barcode.value == -1:
+			raise NotEnoughDataException('no barcode detected.')
+		return self.barcode.value
+	
+	def clear_number(self):
+		self.barcode = None
+
 	def estimate_center_from_map(self):
 		if not self.map:
-			raise NotEnoughDataException('no map data received.')
+			raise NotEnoughDataException('no map message received.')
 		if self.estimated_map_center and not self.map_center_need_update:
 			return self.estimated_map_center
 		map = self.map
@@ -83,7 +98,7 @@ class Percepts(object):
 
 	def estimate_center_from_worldmodel(self):
 		if not self.model:
-			raise NotEnoughDataException('no worldmodel data received.')
+			raise NotEnoughDataException('no worldmodel message received.')
 		min_x = 1000
 		max_x = -1000
 		min_y = 1000
@@ -109,16 +124,16 @@ class Percepts(object):
 	def get_loading_stations(self):
 		center = self.estimate_center_from_map()
 		if not self.model:
-			raise NotEnoughDataException('no worldmodel data received.')
+			raise NotEnoughDataException('no worldmodel message received.')
 		model = self.model
 		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < 2.0]
 		if len(lines) == 0:
 			raise NotEnoughDataException('no known loading stations.')
 		return lines
 
-	def get_number(self, number):
+	def get_number_banner(self, number):
 		if not self.model:
-			raise NotEnoughDataException('no worldmodel data received.')
+			raise NotEnoughDataException('no worldmodel message received.')
 		number_class = 'number_banner_{}'.format(number)
 		model = self.model
 		banners = [object for object in self.model.objects if object.info.class_id == number_class]

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="disable_poseupdate" default="true" />
+  <arg name="disable_poseupdate" default="false" />
 
   <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
     <param name="base_frame" value="base_footprint" />
@@ -39,8 +39,8 @@
     <node pkg="tf" type="static_transform_publisher" name="map_nav_broadcaster" args="0 0 0 0 0 0 map nav 100"/>
   </group>
 
-  <!--
   <node pkg="hector_map_server" type="hector_map_server" name="hector_map_server" output="screen" />
+  <!--
   <node pkg="hector_trajectory_server" type="hector_trajectory_server" name="hector_trajectory_server" output="screen" />
 
   <node pkg="hector_geotiff" type="geotiff_node" name="hector_geotiff_node" output="screen" launch-prefix="nice -n 15">
@@ -48,8 +48,7 @@
     <param name="map_file_base_name" type="string" value="MappingBox" />
     <param name="geotiff_save_period" type="double" value="45" />
   </node>
-  -->
-
   <node pkg="topic_tools" type="throttle" name="map_throttle" args="messages map 0.1 throttled_map" />
+  -->
 </launch>
 

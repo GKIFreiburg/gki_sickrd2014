@@ -27,7 +27,7 @@ class Actions(object):
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
 
-		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client, self.led_client]:
+		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
 			if client:
 				rospy.loginfo('waiting for {} action server...'.format(client.action_client.ns))
 				client.wait_for_server()
