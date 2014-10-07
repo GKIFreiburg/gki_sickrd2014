@@ -17,13 +17,10 @@ from gki_sickrd_task.deliver_cubes_strategy import DeliverCubesStrategy
 
 if __name__ == "__main__":
 	rospy.init_node("sickrd_task")
-	Params.update()
-	actions = Actions()
-	percepts = Percepts()
 	
 	# strategy
-	#strategy = RandomMoveStrategy(actions, percepts)
-	strategy = DeliverCubesStrategy(actions, percepts)
+	#strategy = RandomMoveStrategy()
+	strategy = DeliverCubesStrategy()
 	decision_timer = rospy.Timer(rospy.Duration(1.0), strategy.decide)
 	
 	

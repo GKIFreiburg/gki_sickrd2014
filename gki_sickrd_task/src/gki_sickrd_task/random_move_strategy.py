@@ -11,9 +11,9 @@ from gki_sickrd_task.percepts import Percepts
 from gki_sickrd_task.tools import Tools
 
 class RandomMoveStrategy(object):
-	def __init__(self, actions, worldmodel):
-		self.actions = actions
-		self.percepts = worldmodel
+	def __init__(self):
+		self.actions = Actions()
+		self.percepts = Percepts()
 		self.tools = Tools()
 		self.previous_scan_pose = None
 		self.decision_required = True		

@@ -30,6 +30,8 @@ class Percepts(object):
 		self.map = None
 		self.map_center_need_update = False
 		self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
+		self.cube_sensor
+		self.cube_sensor_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.cube_sensor_cb)
 		rospy.loginfo('percepts initialized')
 		
 	def worldmodel_cb(self, msg):
@@ -171,7 +173,6 @@ class Percepts(object):
 		return scan
 
 	def wait_for_cube_sensor_change(self, done_cb):
-		# clear msg
 		# enable cube sensor
 		# enable barcode detector
 		# wait for change in value
