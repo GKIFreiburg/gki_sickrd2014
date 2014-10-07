@@ -89,12 +89,14 @@ class DeliverCubesStrategy(object):
 		self.current_number = self.percepts.barcode.value
 		self.percepts.disable_barcode_detection()
 		self.loading_cube = False
+		self.actions.cancel_cube_timeout()
 
 	def unload_cube(self):
 		if self.percepts.cube.value:
 			return # wait 
 		self.current_number = -1
 		self.loading_cube = False
+		self.actions.cancel_cube_timeout()
 
 	def approach_loading_station(self):
 		loading_stations = self.percepts.get_loading_stations()
@@ -114,6 +116,9 @@ class DeliverCubesStrategy(object):
 
 	def approach_number(self):
 		number = self.percepts.get_number(self.current_number)
+		if number == -1:
+			# TODO: recovery?!
+			raise NotEnoughDataException('cube present, but no number detected.')
 		stamped = PoseStamped()
 		stamped.header = number.header
 		stamped.pose = number.pose.pose

@@ -8,6 +8,7 @@ import copy
 
 import tf
 from visualization_msgs.msg import Marker, MarkerArray
+from kobuki_msgs.msg import Led
 from actionlib import SimpleActionClient
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal, MoveBaseResult
 from camera_control_msgs.msg import CameraAction, CameraGoal, CameraResult
@@ -22,7 +23,7 @@ class Actions(object):
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.approach_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
-		# FIXME: self.led_client = rospy.ServiceProxy('led', service_class)
+		self.led_publishers = [rospy.Publisher('led0', Led), rospy.Publisher('led1', Led), rospy.Publisher('led2', Led)]
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
 
@@ -124,7 +125,13 @@ class Actions(object):
 			self.cube_timeout_timer.shutdown()
 
 	def enable_LEDs(self):
-		pass
+		msg = Led()
+		msg.value = Led.GREEN
+		for pub in self.led_publishers:
+			pub.publish(msg)
 
 	def disable_LEDs(self):
-		pass
+		msg = Led()
+		msg.value = Led.BLACK
+		for pub in self.led_publishers:
+			pub.publish(msg)

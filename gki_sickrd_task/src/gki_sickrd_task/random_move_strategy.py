@@ -11,9 +11,9 @@ from gki_sickrd_task.percepts import Percepts
 from gki_sickrd_task.tools import Tools
 
 class RandomMoveStrategy(object):
-	def __init__(self, actions, worldmodel):
-		self.actions = actions
-		self.percepts = worldmodel
+	def __init__(self):
+		self.actions = Actions()
+		self.percepts = Percepts()
 		self.tools = Tools()
 		self.previous_scan_pose = None
 		self.decision_required = True		
@@ -56,6 +56,7 @@ class RandomMoveStrategy(object):
 		rospy.loginfo('camera_sweep: done')
 		self.previous_scan_pose = self.tools.get_current_pose()
 		self.actions.look_to(self.look_done_cb)
+		self.decision_required = True
 
 	def look_done_cb(self, status, result):
 		rospy.loginfo('camera_look: done')
