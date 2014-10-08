@@ -16,7 +16,6 @@ ChannelController:
   goal_reached_dist: 0.15
   goal_reached_angle: 0.17
 
-# TODO measure this
   min_tv: 0.08
 # Actual robot max is probably 2.4 m/s
 # Stay slightly lower to allow rotational control
@@ -24,8 +23,8 @@ ChannelController:
   min_rv: 0.0
 # 90 deg/s. Actual robot can go 180 deg/s, but we don't want that craziness
   max_rv: 1.6
-# TODO measure this (floor dependent)
-  min_inplace_rv: 0.5
+# (floor dependent)
+  min_inplace_rv: 0.18
 
   stopped_tv: 0.05
   stopped_rv: 0.1
