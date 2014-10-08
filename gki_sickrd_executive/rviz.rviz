@@ -9,8 +9,8 @@ Panels:
         - /TF1/Frames1
         - /PathFollower1/Namespaces1
         - /Simulation1/Namespaces1
-        - /Task1
         - /Task1/Namespaces1
+        - /Axis Camera1
       Splitter Ratio: 0.784387
     Tree Height: 775
   - Class: rviz/Selection
@@ -276,6 +276,17 @@ Visualization Manager:
       Name: World Model
       Namespaces:
         isolated_lines: true
+        number_banner_0: true
+        number_banner_1: true
+        number_banner_2: true
+        number_banner_3: true
+        number_banner_4: true
+        number_banner_5: true
+        number_banner_6: true
+        number_banner_7: true
+        number_banner_8: true
+        number_banner_9: true
+        target_marker: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -288,13 +299,13 @@ Visualization Manager:
       Value: true
     - Class: rviz/InteractiveMarkers
       Enable Transparency: true
-      Enabled: true
+      Enabled: false
       Name: InteractiveMarkers
       Show Axes: false
       Show Descriptions: true
       Show Visual Aids: false
       Update Topic: /interactive_pose_creator/update
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /task/visualization_marker_array
@@ -302,6 +313,39 @@ Visualization Manager:
       Namespaces:
         {}
       Queue Size: 100
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /camera_front/image_raw
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Front Camera
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /camera_cube/image_raw
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Cube Camera
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /axis/image_raw
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Axis Camera
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: compressed
       Value: true
   Enabled: true
   Global Options:
@@ -326,7 +370,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 10.5502
+      Distance: 8.62858
       Focal Point:
         X: -4.25813
         Y: -1.45801
@@ -339,7 +383,13 @@ Visualization Manager:
       Yaw: 3.66221
     Saved: ~
 Window Geometry:
+  Axis Camera:
+    collapsed: false
+  Cube Camera:
+    collapsed: false
   Displays:
+    collapsed: false
+  Front Camera:
     collapsed: false
   Height: 1056
   Hide Left Dock: false
