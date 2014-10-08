@@ -1,5 +1,8 @@
 controller_frequency: 20.0
 ChannelController:
+  use_costmap: true
+  use_laser: true
+
   safe_waypoint_channel_width: 0.65
   safe_channel_width: 0.5
 
@@ -11,6 +14,7 @@ ChannelController:
   min_get_to_safe_dist_time: 7.0
   max_get_to_safe_dist_time: 20.0
   waypoint_reached_dist: 0.6
+  waypoint_reached_dist_at_max_tv: 1.3
   waypoint_reached_angle: 7.0
 
   goal_reached_dist: 0.15
@@ -35,7 +39,9 @@ ChannelController:
 # Braking accel is much higher about -2.9 max. Don't force this too often for strain
   max_accel_rv: -1.0
 
-  wait_for_obstacles_time: 15.0
+# with using the laser, a costmap might be empty as long as they are valid ranges
+# Thus if this triggers something is wrong - dont drive
+  wait_for_obstacles_time: 9999.0
   no_progress_hard_clear_time: 60.0
 
   visualize_voronoi: true

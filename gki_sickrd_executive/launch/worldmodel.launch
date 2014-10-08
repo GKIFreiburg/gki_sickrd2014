@@ -2,11 +2,9 @@
 
 <launch>
     <node pkg="hector_object_tracker" type="object_tracker" name="object_tracker" output="screen">
-      <param name="project_objects" type="bool" value="false" />
-      <param name="angle_variance" type="double" value="0.241846968"/>
-
       <rosparam command="load" file="$(find gki_sickrd_executive)/config/object_tracker.yaml" />
 
+      <remap from="get_distance_to_obstacle" to="/hector_map_server/get_distance_to_obstacle" />
       <remap from="visualization_marker" to="worldmodel/visualization_marker" />
       <remap from="visualization_marker_array" to="worldmodel/visualization_marker_array" />
     </node>
