@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <node pkg="gki_sickrd_task" type="start_sickrd_task.py" name="sickrd_task" output="screen">
+  <node pkg="gki_sickrd_task" type="deliver_cubes_strategy.py" name="sickrd_task" output="screen">
     <rosparam command="load" file="$(find gki_sickrd_task)/config/params.yaml" />
   </node>
 </launch>

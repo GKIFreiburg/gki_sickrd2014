@@ -69,3 +69,12 @@ class RandomMoveStrategy(object):
 	def move_timeout_cb(self, event):
 		rospy.loginfo('random_move: timeout')
 		self.decision_required = True
+
+if __name__ == "__main__":
+	rospy.init_node("sickrd_task")
+	
+	# strategy
+	strategy = RandomMoveStrategy()
+	decision_timer = rospy.Timer(rospy.Duration(1.0), strategy.decide)
+	rospy.spin()
+

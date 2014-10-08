@@ -3,7 +3,6 @@
 import roslib; roslib.load_manifest("gki_sickrd_task")
 import rospy
 import math
-import threading
 
 from geometry_msgs.msg import PoseStamped
 
@@ -138,3 +137,10 @@ class DeliverCubesStrategy(object):
 	def cube_received(self, msg):
 		pass
 
+if __name__ == "__main__":
+	rospy.init_node("sickrd_task")
+	# strategy
+	strategy = DeliverCubesStrategy()
+	decision_timer = rospy.Timer(rospy.Duration(1.0), strategy.decide)
+	rospy.spin()
+	
