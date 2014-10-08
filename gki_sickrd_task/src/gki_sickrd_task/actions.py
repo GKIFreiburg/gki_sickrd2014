@@ -27,7 +27,7 @@ class Actions(object):
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
 
-		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client, self.led_client]:
+		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
 			if client:
 				rospy.loginfo('waiting for {} action server...'.format(client.action_client.ns))
 				client.wait_for_server()
@@ -115,7 +115,7 @@ class Actions(object):
 		goal.tilt = pitch
 		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
 
-	def wait_for_cube_operation(self, timeout_cb):
+	def start_cube_operation_timer(self, timeout_cb):
 		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params.get().cube_timeout), timeout_cb, oneshot=True)
 
 	def cancel_cube_timeout(self):

@@ -7,7 +7,7 @@ map_type: costmap
 max_obstacle_height: 0.60  # assume something like an arm is mounted on top of the robot
 obstacle_range: 10.0
 raytrace_range: 6.0
-robot_radius: 0.30
+robot_radius: 0.325
 inflation_radius: 0.80
 observation_sources: base_scan #map_cloud kinect bump
 

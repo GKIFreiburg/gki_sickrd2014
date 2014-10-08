@@ -1,5 +1,6 @@
 number_banner_0:
-  active_support: 1.0
+  #active_support: 10.0
+  #inactive_support: 1.0
   min_height: 0.2
   max_height: 0.7
   marker_color: [0.8, 0.4, 0.0]
@@ -62,4 +63,5 @@ negative_update:
   - topic: axis215/camera_info
     min_distance: 2.0
     max_distance: 5.0
+    #ignore_border_pixels: 10
     negative_support: 0.5

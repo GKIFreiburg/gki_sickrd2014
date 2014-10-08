@@ -56,6 +56,7 @@ class RandomMoveStrategy(object):
 		rospy.loginfo('camera_sweep: done')
 		self.previous_scan_pose = self.tools.get_current_pose()
 		self.actions.look_to(self.look_done_cb)
+		self.decision_required = True
 
 	def look_done_cb(self, status, result):
 		rospy.loginfo('camera_look: done')

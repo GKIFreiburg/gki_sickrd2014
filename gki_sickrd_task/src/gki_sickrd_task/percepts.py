@@ -14,6 +14,8 @@ from gki_sickrd_task.params import Params
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, PoseWithCovariance
 from nav_msgs.msg import OccupancyGrid
+from std_msgs.msg import Bool, Int32
+from std_srvs.srv import Empty
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
 
 class NotEnoughDataException(Exception):
@@ -30,27 +32,17 @@ class Percepts(object):
 		self.map = None
 		self.map_center_need_update = False
 		self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
-		self.cube_sensor
-		self.cube_sensor_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.cube_sensor_cb)
+		self.cube = None
+		self.cube_subscriber = rospy.Subscriber('/cube_sensor', Bool, self.cube_sensor_cb)
+		self.barcode_enable_service = rospy.ServiceProxy('/barcode_processing/enable_detection', Empty)
+		self.barcode_disable_service = rospy.ServiceProxy('/barcode_processing/disable_detection', Empty)
+		self.barcode = None
+		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
 		rospy.loginfo('percepts initialized')
-		
-	def worldmodel_cb(self, msg):
-		#rospy.loginfo('new model data')
-		self.model = msg
-
-	def map_cb(self, msg):
-		#rospy.loginfo('new map data')
-		self.map = msg
-		self.map_center_need_update = True
-
-	def xy_distance(self, ps1, ps2):
-		if ps1.header.frame_id != ps2.header.frame_id:
-			ps2 = self.tools.tf_listener.transformPose(target_frame=ps1.header.frame_id, ps=ps2)
-		return math.hypot(ps1.pose.position.x-ps2.pose.position.x, ps1.pose.position.y-ps2.pose.position.y)
 
 	def map_to_world(self, x, y):
 		if not self.map:
-			raise NotEnoughDataException('no map data received.')
+			raise NotEnoughDataException('no map message received.')
 		stamped = PoseStamped()
 		stamped.header.frame_id = self.map.header.frame_id
 		stamped.pose.position.x = x * self.map.info.resolution
@@ -61,9 +53,24 @@ class Percepts(object):
 		stamped.pose = pm.toMsg(origin_transform * center_transform)
 		return stamped
 
+	def cube_loaded(self):
+		if not self.cube:
+			raise NotEnoughDataException('no cube sensor message received.')
+		return self.cube.value
+
+	def current_number(self):
+		if not self.barcode:
+			raise NotEnoughDataException('no barcode detection message received.')
+		if self.barcode.value == -1:
+			raise NotEnoughDataException('no barcode detected.')
+		return self.barcode.value
+	
+	def clear_number(self):
+		self.barcode = None
+
 	def estimate_center_from_map(self):
 		if not self.map:
-			raise NotEnoughDataException('no map data received.')
+			raise NotEnoughDataException('no map message received.')
 		if self.estimated_map_center and not self.map_center_need_update:
 			return self.estimated_map_center
 		map = self.map
@@ -91,7 +98,7 @@ class Percepts(object):
 
 	def estimate_center_from_worldmodel(self):
 		if not self.model:
-			raise NotEnoughDataException('no worldmodel data received.')
+			raise NotEnoughDataException('no worldmodel message received.')
 		min_x = 1000
 		max_x = -1000
 		min_y = 1000
@@ -117,16 +124,16 @@ class Percepts(object):
 	def get_loading_stations(self):
 		center = self.estimate_center_from_map()
 		if not self.model:
-			raise NotEnoughDataException('no worldmodel data received.')
+			raise NotEnoughDataException('no worldmodel message received.')
 		model = self.model
 		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < 2.0]
 		if len(lines) == 0:
 			raise NotEnoughDataException('no known loading stations.')
 		return lines
 
-	def get_number(self, number):
+	def get_number_banner(self, number):
 		if not self.model:
-			raise NotEnoughDataException('no worldmodel data received.')
+			raise NotEnoughDataException('no worldmodel message received.')
 		number_class = 'number_banner_{}'.format(number)
 		model = self.model
 		banners = [object for object in self.model.objects if object.info.class_id == number_class]
@@ -172,15 +179,22 @@ class Percepts(object):
 			distance = self.tools.xy_distance(current, scan)
 		return scan
 
-	def wait_for_cube_sensor_change(self, done_cb):
-		# enable cube sensor
-		# enable barcode detector
-		# wait for change in value
-		# trigger cb
-		pass
-	
+	def enable_barcode_detection(self):
+		self.barcode_enable_service.call()
+
+	def disable_barcode_detection(self):
+		self.barcode_disable_service.call()
+
+	def worldmodel_cb(self, msg):
+		self.model = msg
+
+	def map_cb(self, msg):
+		self.map = msg
+		self.map_center_need_update = True
+
 	def cube_sensor_cb(self, msg):
-		pass
+		self.cube = msg
 
 	def barcode_cb(self, msg):
-		pass
+		self.barcode = msg
+
