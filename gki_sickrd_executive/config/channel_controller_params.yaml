@@ -4,6 +4,7 @@ ChannelController:
   use_laser: true
 
   safe_waypoint_channel_width: 0.65
+  safe_waypoint_channel_width_at_max_tv: 1.5
   safe_channel_width: 0.5
 
   channel_score_da: 1.0
