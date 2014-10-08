@@ -1,58 +1,35 @@
+project_objects: true
+angle_variance: 0.241846968
+distance_variance: 0.5
+active_support: 10.0
+inactive_support: 1.0
+min_height: 0.3
+max_height: 0.9
 number_banner_0:
-  #active_support: 10.0
-  #inactive_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.8, 0.4, 0.0]
 number_banner_1:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.8, 0.8, 0.0]
 number_banner_2:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
+  distance_to_obstacle_service: "/hector_map_server/get_distance_to_obstacle"
   marker_color: [0.4, 0.8, 0.0]
 number_banner_3:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.0, 0.8, 0.0]
 number_banner_4:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.0, 0.8, 0.4]
 number_banner_5:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.0, 0.8, 0.8]
 number_banner_6:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.0, 0.4, 0.8]
 number_banner_7:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.0, 0.0, 0.8]
 number_banner_8:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.4, 0.0, 0.8]
 number_banner_9:
-  active_support: 1.0
-  min_height: 0.2
-  max_height: 0.7
   marker_color: [0.8, 0.0, 0.8]
 target_marker:
   active_support: 1.0
   min_height: 0.1
-  max_height: 0.2
+  max_height: 0.4
   marker_color: [0.8, 0.8, 0.8]
 isolated_lines:
   active_support: 1.0
@@ -60,8 +37,8 @@ isolated_lines:
   max_height: 0.2
   marker_color: [0.8, 0.4, 0.8]
 negative_update:
-  - topic: axis215/camera_info
+  - topic: axis/camera_info
     min_distance: 2.0
-    max_distance: 5.0
-    #ignore_border_pixels: 10
+    max_distance: 7.5
     negative_support: 0.5
+
