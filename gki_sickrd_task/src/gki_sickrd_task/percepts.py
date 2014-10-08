@@ -121,12 +121,48 @@ class Percepts(object):
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
 
+	def visualize_worldmodel(self):
+		if not self.model:
+			raise NotEnoughDataException('no worldmodel message received.')
+		msg = MarkerArray()
+		# loading stations
+		try:
+			for station in self.get_loading_stations():
+				stamped = PoseStamped()
+				stamped.header.frame_id = self.map.header.frame_id
+				stamped.pose = station.pose.pose
+				msg.markers.append(self.tools.create_pose_marker(stamped, ns='loading_stations'))
+				msg.markers[-1].color.r = 0.8
+				msg.markers[-1].color.g = 0.8
+				msg.markers[-1].color.b = 0.8
+				msg.markers[-1].type = Marker.CUBE
+				msg.markers[-1].id = len(msg.markers)
+		except NotEnoughDataException:
+			rospy.loginfo('no loading stations known.')
+		# banners
+		for number in range(10):
+			try:
+				banner = self.get_number_banner(number)
+				stamped = PoseStamped()
+				stamped.header.frame_id = self.map.header.frame_id
+				stamped.pose = banner.pose.pose
+				msg.markers.append(self.tools.create_pose_marker(stamped, ns='number_banners'))
+				i = number + 4
+				msg.markers[-1].color.r = i/9*0.4
+				msg.markers[-1].color.g = i%9/3*0.4
+				msg.markers[-1].color.b = i%3*0.4
+				msg.markers[-1].type = Marker.CUBE
+				msg.markers[-1].id = number
+			except NotEnoughDataException:
+				rospy.loginfo('number {} unknown.'.format(number))
+		self.tools.visualization_publisher.publish(msg)
+
 	def get_loading_stations(self):
 		center = self.estimate_center_from_map()
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		model = self.model
-		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < 2.0]
+		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < Params.get().max_loading_station_distance_from_center]
 		if len(lines) == 0:
 			raise NotEnoughDataException('no known loading stations.')
 		return lines
@@ -170,7 +206,7 @@ class Percepts(object):
 		current = self.tools.get_current_pose()
 		distance = 0.0
 		scan_distance = Params.get().optimal_exploration_distance
-		while distance < Params.get().minimum_travel_distance_for_rescan:
+		while distance < Params.get().min_travel_distance_for_rescan:
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.75, scan_distance*1.33)
 			scan = copy.deepcopy(center)

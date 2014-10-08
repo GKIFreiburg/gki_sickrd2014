@@ -33,6 +33,7 @@ class DeliverCubesStrategy(object):
 		try:
 			Params.update()
 			self.percepts.estimate_center_from_map()
+			self.percepts.visualize_worldmodel()
 
 			# cube operation failure recovery
 			if self.cube_operation_failure:
