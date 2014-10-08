@@ -112,7 +112,7 @@ class DeliverCubesStrategy(object):
 		else:
 			rospy.loginfo('moving to loading station...')
 			approach = self.percepts.sample_approach_pose(stamped)
-			self.actions.move_to(approach, self.move_base_cd, self.move_timeout_cb)
+			self.actions.move_to(approach, self.move_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
 	def approach_number(self):
@@ -127,7 +127,7 @@ class DeliverCubesStrategy(object):
 		else:
 			rospy.loginfo('moving to number {}...'.format(number))
 			approach = self.percepts.sample_approach_pose(stamped)
-			self.actions.move_to(approach, self.move_base_cd, self.move_timeout_cb)
+			self.actions.move_to(approach, self.move_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
 	def retreat(self):

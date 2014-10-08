@@ -35,8 +35,8 @@ class Percepts(object):
 		self.cube_subscriber = rospy.Subscriber('/cube_sensor', Bool, self.cube_sensor_cb)
 		self.barcode = None
 		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
-		self.barcode_enable_service = rospy.ServiceProxy('/barcode_processing/enable_detection', Empty)
-		self.barcode_disable_service = rospy.ServiceProxy('/barcode_processing/disable_detection', Empty)
+		self.barcode_enable_service = rospy.ServiceProxy('/barcode_detection/enable_detection', Empty)
+		self.barcode_disable_service = rospy.ServiceProxy('/barcode_detection/disable_detection', Empty)
 		for service in [self.barcode_enable_service, self.barcode_disable_service]:
 			rospy.loginfo('waiting for service {}...'.format(service.resolved_name))
 			service.wait_for_service()
@@ -59,14 +59,14 @@ class Percepts(object):
 	def cube_loaded(self):
 		if not self.cube:
 			raise NotEnoughDataException('no cube sensor message received.')
-		return self.cube.value
+		return self.cube.data
 
 	def current_number(self):
 		if not self.barcode:
 			raise NotEnoughDataException('no barcode detection message received.')
-		if self.barcode.value == -1:
+		if self.barcode.data == -1:
 			raise NotEnoughDataException('no barcode detected.')
-		return self.barcode.value
+		return self.barcode.data
 	
 	def clear_number(self):
 		self.barcode = None
