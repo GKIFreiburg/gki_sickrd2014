@@ -22,7 +22,6 @@ class NotEnoughDataException(Exception):
 	def __init__(self, message):
 		self.message = message
 
-
 class Percepts(object):
 	def __init__(self):
 		self.tools = Tools()
@@ -34,11 +33,15 @@ class Percepts(object):
 		self.map_subscriber = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
 		self.cube = None
 		self.cube_subscriber = rospy.Subscriber('/cube_sensor', Bool, self.cube_sensor_cb)
-		self.barcode_enable_service = rospy.ServiceProxy('/barcode_processing/enable_detection', Empty)
-		self.barcode_disable_service = rospy.ServiceProxy('/barcode_processing/disable_detection', Empty)
 		self.barcode = None
 		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
-		rospy.loginfo('percepts initialized')
+		self.barcode_enable_service = rospy.ServiceProxy('/barcode_processing/enable_detection', Empty)
+		self.barcode_disable_service = rospy.ServiceProxy('/barcode_processing/disable_detection', Empty)
+		for service in [self.barcode_enable_service, self.barcode_disable_service]:
+			rospy.loginfo('waiting for service {}...'.format(service.resolved_name))
+			service.wait_for_service()
+			rospy.loginfo('service {} is now available.'.format(service.resolved_name))
+		rospy.loginfo('percepts initialized.')
 
 	def map_to_world(self, x, y):
 		if not self.map:
@@ -199,7 +202,7 @@ class Percepts(object):
 		approach.pose.orientation.y = rotation[1]
 		approach.pose.orientation.z = rotation[2]
 		approach.pose.orientation.w = rotation[3]
-		return stamped
+		return approach
 
 	def sample_scan_pose(self):
 		center = self.estimate_center_from_map()
@@ -213,6 +216,11 @@ class Percepts(object):
 			scan.pose.position.x += center_distance * math.sin(map_yaw)
 			scan.pose.position.y += center_distance * math.cos(map_yaw)
 			distance = self.tools.xy_distance(current, scan)
+		rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
+		scan.pose.orientation.x = rotation[0]
+		scan.pose.orientation.y = rotation[1]
+		scan.pose.orientation.z = rotation[2]
+		scan.pose.orientation.w = rotation[3]
 		return scan
 
 	def enable_barcode_detection(self):

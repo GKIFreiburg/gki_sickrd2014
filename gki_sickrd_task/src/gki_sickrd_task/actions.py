@@ -24,6 +24,7 @@ class Actions(object):
 		self.approach_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
 		self.led_publishers = [rospy.Publisher('led0', Led), rospy.Publisher('led1', Led), rospy.Publisher('led2', Led)]
+		self.approach_timeout_timer = None
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
 
@@ -33,6 +34,15 @@ class Actions(object):
 				client.wait_for_server()
 				rospy.loginfo('connected to {} action server'.format(client.action_client.ns))
 		rospy.loginfo('actions initialized')
+
+	def cancel_all_actions(self):
+		rospy.loginfo('canceling all actions...')
+		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
+			client.cancel_all_goals()
+		for timer in [self.approach_timeout_timer, self.move_timeout_timer, self.cube_timeout_timer]:
+			if timer:
+				timer.shutdown()
+		self.disable_LEDs()
 
 	def random_move(self, done_cb, timeout_cb):
 		stamped = PoseStamped()
