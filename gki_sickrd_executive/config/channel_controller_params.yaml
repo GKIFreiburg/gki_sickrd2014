@@ -16,16 +16,24 @@ ChannelController:
   goal_reached_dist: 0.15
   goal_reached_angle: 0.17
 
+# TODO measure this
   min_tv: 0.08
-  max_tv: 0.5
+# Actual robot max is probably 2.4 m/s
+# Stay slightly lower to allow rotational control
+  max_tv: 2.0
   min_rv: 0.0
+# 90 deg/s. Actual robot can go 180 deg/s, but we don't want that craziness
   max_rv: 1.6
+# TODO measure this (floor dependent)
   min_inplace_rv: 0.5
 
   stopped_tv: 0.05
   stopped_rv: 0.1
 
-  max_accel_tv: 1.0
+# Takes about 2 - 2.5 s to reach speed of 2.4 m/s
+# Competition maybe try 1 - 1.2 for max strain
+  max_accel_tv: 0.8
+# Braking accel is much higher about -2.9 max. Don't force this too often for strain
   max_accel_rv: -1.0
 
   wait_for_obstacles_time: 15.0
