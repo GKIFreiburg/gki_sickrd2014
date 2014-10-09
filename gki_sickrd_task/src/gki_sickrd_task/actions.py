@@ -21,9 +21,9 @@ class Actions(object):
 	def __init__(self):
 		self.tools = Tools()
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
-		self.approach_client = SimpleActionClient('/move_base', MoveBaseAction)
+		self.approach_client = SimpleActionClient('/approach_action', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
-		self.led_publishers = [rospy.Publisher('led0', Led), rospy.Publisher('led1', Led), rospy.Publisher('led2', Led)]
+		self.led_publishers = [rospy.Publisher('/led0', Led), rospy.Publisher('/led1', Led), rospy.Publisher('/led2', Led)]
 		self.approach_timeout_timer = None
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
@@ -75,10 +75,11 @@ class Actions(object):
 	def approach(self, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose.header.frame_id = 'base_footprint'
-		goal.target_pose.pose.position.x = 0.5 * Params.get().approach_distance
+		goal.target_pose.pose.position.x = Params.get().approach_distance - Params.get().ring_distance
 		goal.target_pose.pose.orientation.w = 1
+		goal.target_pose = self.tools.transform_pose('map', goal.target_pose)
 		msg = MarkerArray()
-		msg.markers.append(self.tools.create_pose_marker(stamped))
+		msg.markers.append(self.tools.create_pose_marker(goal.target_pose))
 		msg.markers[-1].color.r = 0.8
 		msg.markers[-1].color.g = 0.8
 		self.tools.visualization_publisher.publish(msg)
@@ -88,10 +89,11 @@ class Actions(object):
 	def retreat(self, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose.header.frame_id = 'base_footprint'
-		goal.target_pose.pose.position.x = -0.5 * Params.get().approach_distance
+		goal.target_pose.pose.position.x = -(Params.get().approach_distance - Params.get().ring_distance)
 		goal.target_pose.pose.orientation.w = 1
+		goal.target_pose = self.tools.transform_pose('map', goal.target_pose)
 		msg = MarkerArray()
-		msg.markers.append(self.tools.create_pose_marker(stamped))
+		msg.markers.append(self.tools.create_pose_marker(goal.target_pose))
 		msg.markers[-1].color.r = 0.8
 		msg.markers[-1].color.g = 0.8
 		self.tools.visualization_publisher.publish(msg)

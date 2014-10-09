@@ -7,6 +7,8 @@ import random
 import copy
 
 import tf
+import tf_conversions.posemath as pm
+import PyKDL
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped
 
@@ -53,13 +55,19 @@ class Tools(object):
 	def transform_pose(self, frame_id, stamped):
 		return self.tf_listener.transformPose(target_frame=frame_id, ps=stamped)
 	
+	def add_poses(self, pose1, pose2):
+		transform1 = pm.fromMsg(pose1)
+		transform2 = pm.fromMsg(pose2)
+		sum = transform1 * transform2
+		return pm.toMsg(sum)
+	
 	def xy_distance_to_robot(self, ps2):
 		ps1 = self.get_current_pose(ps2.header.frame_id)
 		return self.xy_point_distance(ps1.pose.position, ps2.pose.position)
 
 	def xy_distance(self, ps1, ps2):
 		if ps1.header.frame_id != ps2.header.frame_id:
-			ps2 = self.transform_pose(target_frame=ps1.header.frame_id, ps=ps2)
+			ps2 = self.transform_pose(frame_id=ps1.header.frame_id, stamped=ps2)
 		return self.xy_point_distance(ps1.pose.position, ps2.pose.position)
 
 	def xy_point_distance(self, p1, p2):

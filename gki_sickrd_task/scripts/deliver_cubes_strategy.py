@@ -3,6 +3,7 @@
 import roslib; roslib.load_manifest("gki_sickrd_task")
 import rospy
 import math
+import sys,traceback
 
 from geometry_msgs.msg import PoseStamped
 
@@ -20,6 +21,7 @@ class DeliverCubesStrategy(object):
 		self.tools = Tools()
 		self.previous_scan_pose = None
 		self.decision_required = True
+		self.at_approach = False
 		self.at_ring = False
 		self.current_number = -1
 		self.loading_cube = False
@@ -79,14 +81,18 @@ class DeliverCubesStrategy(object):
 					# not enough data to find number
 					self.explore()
 					return
-		except Exception as e:
+		except NotEnoughDataException as e:
 			rospy.logwarn('exception {}: {}'.format(type(e), e.message))
 			rospy.sleep(1.0)
+		except Exception as e:
+			rospy.logerr(traceback.format_exc())
 
 	def load_cube(self):
 		if not self.percepts.cube_loaded():
+			rospy.loginfo('waiting for cube...')
 			return # wait 
 		if self.percepts.barcode.value == -1:
+			rospy.loginfo('waiting for barcode...')
 			return # wait 
 		self.percepts.disable_barcode_detection()
 		self.loading_cube = False
@@ -106,13 +112,14 @@ class DeliverCubesStrategy(object):
 		stamped = PoseStamped()
 		stamped.header = loading_stations[0].header
 		stamped.pose = loading_stations[0].pose.pose
-		if self.tools.xy_distance_to_robot(stamped) < 1.1 * Params.get().approach_distance:
+		if self.at_approach:
 			rospy.loginfo('approaching loading station...')
 			self.actions.approach(self.approach_loading_station_done_cb, self.approach_timeout_cb)
+			self.at_approach = False
 		else:
 			rospy.loginfo('moving to loading station...')
 			approach = self.percepts.sample_approach_pose(stamped)
-			self.actions.move_to(approach, self.move_done_cb, self.move_timeout_cb)
+			self.actions.move_to(approach, self.preapproach_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
 	def approach_number(self):
@@ -121,19 +128,20 @@ class DeliverCubesStrategy(object):
 		stamped = PoseStamped()
 		stamped.header = banner.header
 		stamped.pose = banner.pose.pose
-		if self.tools.xy_distance_to_robot(stamped) < 1.1 * Params.get().approach_distance:
+		if self.at_approach:
 			rospy.loginfo('approaching number {}...'.format(number))
 			self.actions.approach(self.approach_number_done_cb, self.approach_timeout_cb)
+			self.at_approach = False
 		else:
 			rospy.loginfo('moving to number {}...'.format(number))
 			approach = self.percepts.sample_approach_pose(stamped)
-			self.actions.move_to(approach, self.move_done_cb, self.move_timeout_cb)
+			self.actions.move_to(approach, self.preapproach_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
 	def retreat(self):
 		rospy.loginfo('retreating...')
 		self.actions.disable_LEDs()
-		self.actions.retreat(retreat_done_cb, timeout_cb)
+		self.actions.retreat(self.retreat_done_cb, self.retreat_timeout_cb)
 		self.decision_required = False
 
 	def explore(self):
@@ -144,7 +152,7 @@ class DeliverCubesStrategy(object):
 			self.decision_required = False
 			return
 		current_pose = self.tools.get_current_pose()
-		if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().minimum_travel_distance_for_rescan:
+		if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().min_travel_distance_for_rescan:
 			rospy.loginfo('sweeping...')
 			self.actions.stop()
 			self.actions.camera_sweep(self.sweep_done_cb)
@@ -189,8 +197,14 @@ class DeliverCubesStrategy(object):
 		self.at_ring = False
 		self.decision_required = True
 
+	def preapproach_done_cb(self, status, result):
+		rospy.loginfo('pre-approach: done\n{}\n{}'.format(status, result))
+		self.actions.cancel_move_timeout()
+		self.at_approach = True
+		self.decision_required = True
+
 	def move_done_cb(self, status, result):
-		rospy.loginfo('random_move: done')
+		rospy.loginfo('move: done')
 		self.actions.cancel_move_timeout()
 		self.decision_required = True
 

@@ -12,7 +12,7 @@ import PyKDL
 from gki_sickrd_task.tools import Tools
 from gki_sickrd_task.params import Params
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import PoseStamped, PoseWithCovariance
+from geometry_msgs.msg import PoseStamped, PoseWithCovariance, Pose
 from nav_msgs.msg import OccupancyGrid
 from std_msgs.msg import Bool, Int32
 from std_srvs.srv import Empty
@@ -140,12 +140,19 @@ class Percepts(object):
 				msg.markers[-1].color.b = 0.8
 				msg.markers[-1].type = Marker.CUBE
 				msg.markers[-1].id = len(msg.markers)
+				approach = copy.deepcopy(msg.markers[-1])
+				approach.ns = 'loading_approach'
+				approach.type = Marker.ARROW
+				stamped = self.sample_approach_pose(approach)
+				approach.pose = stamped.pose
+				msg.markers.append(approach)
 		except NotEnoughDataException:
 			rospy.loginfo('no loading stations known.')
 		# banners
 		for number in range(10):
 			try:
-				banner = self.get_number_banner(number)
+				banner_data = self.get_number_banner_data(number)
+				banner = banner_data[0]
 				stamped = PoseStamped()
 				stamped.header.frame_id = self.map.header.frame_id
 				stamped.pose = banner.pose.pose
@@ -156,6 +163,18 @@ class Percepts(object):
 				msg.markers[-1].color.b = i%3*0.4
 				msg.markers[-1].type = Marker.CUBE
 				msg.markers[-1].id = number
+				approach = copy.deepcopy(msg.markers[-1])
+				marker = copy.deepcopy(msg.markers[-1])
+				marker.type = marker.TEXT_VIEW_FACING
+				marker.text = '{} ({})'.format(number, banner.info.support)
+				marker.ns = 'description'
+				msg.markers.append(marker)
+				approach.ns = 'banner_approach'
+				approach.type = Marker.ARROW
+				stamped = self.sample_approach_pose(approach)
+				approach.pose = stamped.pose
+				msg.markers.append(approach)
+				rospy.loginfo('number {}: {}'.format(number, [b.info.support for b in banner_data]))
 			except NotEnoughDataException:
 				rospy.loginfo('number {} unknown.'.format(number))
 		self.tools.visualization_publisher.publish(msg)
@@ -171,6 +190,10 @@ class Percepts(object):
 		return lines
 
 	def get_number_banner(self, number):
+		banners = self.get_number_banner_data(number)
+		return banners[0]
+
+	def get_number_banner_data(self, number):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		number_class = 'number_banner_{}'.format(number)
@@ -178,30 +201,43 @@ class Percepts(object):
 		banners = [object for object in self.model.objects if object.info.class_id == number_class]
 		if len(banners) == 0:
 			raise NotEnoughDataException('number not found: {}'.format(number))
-		banners.sort(key=lambda object: object.info.support)
-		return banners[0]
+		banners.sort(key=lambda object: -object.info.support)
+		return banners
 
+	def sample_approach_pose(self, pose, frame_id):
+		stamped = PoseStamped()
+		stamped.header.frame_id = frame_id
+		stamped.pose = pose
+		return self.sample_approach_pose(stamped)
+		
 	def sample_approach_pose(self, stamped):
 		center = self.estimate_center_from_map()
 		if stamped.header.frame_id != center.header.frame_id:
 			approach = self.tools.transform_pose(center.header.frame_id, stamped)
 		else:
 			approach = copy.deepcopy(stamped)
-		map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
-		if self.tools.xy_distance(center, approach) < Params.get().optimal_exploration_distance:
-			# project outward
-			approach.pose.position.x += Params.get().approach_distance * math.sin(map_yaw)
-			approach.pose.position.y += Params.get().approach_distance * math.cos(map_yaw)
-			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + math.pi)
+		if self.tools.xy_distance(center, stamped) < Params.get().max_loading_station_distance_from_center:
+			# project in pose direction
+			rotation = tf.transformations.quaternion_from_euler(0, 0, math.pi)
+			pose = Pose()
+			pose.position.x = Params.get().approach_distance
+			pose.orientation.x = rotation[0]
+			pose.orientation.y = rotation[1]
+			pose.orientation.z = rotation[2]
+			pose.orientation.w = rotation[3]
+			approach.pose = self.tools.add_poses(stamped.pose, pose)
+			approach.pose.position.z = 0
 		else:
 			# project inward
-			approach.pose.position.x -= Params.get().approach_distance * math.sin(map_yaw)
-			approach.pose.position.y -= Params.get().approach_distance * math.cos(map_yaw)
-			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + math.pi)
-		approach.pose.orientation.x = rotation[0]
-		approach.pose.orientation.y = rotation[1]
-		approach.pose.orientation.z = rotation[2]
-		approach.pose.orientation.w = rotation[3]
+			map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
+			approach.pose.position.x -= Params.get().approach_distance * math.cos(map_yaw)
+			approach.pose.position.y -= Params.get().approach_distance * math.sin(map_yaw)
+			approach.pose.position.z = 0
+			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw)
+			approach.pose.orientation.x = rotation[0]
+			approach.pose.orientation.y = rotation[1]
+			approach.pose.orientation.z = rotation[2]
+			approach.pose.orientation.w = rotation[3]
 		return approach
 
 	def sample_scan_pose(self):
@@ -213,8 +249,8 @@ class Percepts(object):
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.75, scan_distance*1.33)
 			scan = copy.deepcopy(center)
-			scan.pose.position.x += center_distance * math.sin(map_yaw)
-			scan.pose.position.y += center_distance * math.cos(map_yaw)
+			scan.pose.position.x += center_distance * math.cos(map_yaw)
+			scan.pose.position.y += center_distance * math.sin(map_yaw)
 			distance = self.tools.xy_distance(current, scan)
 		rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
 		scan.pose.orientation.x = rotation[0]

@@ -38,7 +38,7 @@ class RandomMoveStrategy(object):
 				return
 				
 			current_pose = self.tools.get_current_pose()
-			if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().minimum_travel_distance_for_rescan:
+			if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().min_travel_distance_for_rescan:
 				rospy.loginfo('sweeping...')
 				self.actions.stop()
 				self.actions.camera_sweep(self.sweep_done_cb)

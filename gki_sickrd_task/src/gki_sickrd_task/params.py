@@ -26,7 +26,7 @@ class Params(object):
 		self.max_loading_station_distance_from_center = rospy.get_param('max_loading_station_distance_from_center', 2.0)
 		self.optimal_exploration_distance = rospy.get_param('optimal_exploration_distance', 4.0)
 		self.approach_distance = rospy.get_param('approach_distance', 1.0)
-		self.approach_distance = rospy.get_param('ring_distance', 0.3)
+		self.ring_distance = rospy.get_param('ring_distance', 0.3)
 		self.min_travel_distance_for_rescan = rospy.get_param('min_travel_distance_for_rescan', 2.0)
 		self.cube_timeout = rospy.get_param('cube_timeout', 30.0)
 		self.move_base_timeout = rospy.get_param('move_base_timeout', 30.0)
