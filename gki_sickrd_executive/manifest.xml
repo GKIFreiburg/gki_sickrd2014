@@ -19,6 +19,7 @@
   <depend package="screenrun"/>
   <depend package="barcode_number_processing"/>
   <depend package="hector_qrcode_detection"/>
+  <depend package="approach_controller"/>
 
 </package>
 

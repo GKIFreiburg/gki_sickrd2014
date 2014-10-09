@@ -2,4 +2,6 @@
   <include file="$(find gki_sickrd_executive)/launch/includes/_hector_slam.launch"/>
 
   <include file="$(find gki_sickrd_executive)/launch/includes/_move_base_channel_controller.launch"/>
+
+  <include file="$(find approach_controller)/launch/approach_controller.launch"/>
 </launch>
