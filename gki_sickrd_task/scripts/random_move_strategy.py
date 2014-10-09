@@ -13,12 +13,12 @@ from gki_sickrd_task.estop_guard import EstopGuard
 
 class RandomMoveStrategy(object):
 	def __init__(self):
-		EstopGuard.initialize(['/estop', '/joystick_estop'], self.estop_changed_cb)
 		self.actions = Actions()
 		self.percepts = Percepts()
 		self.tools = Tools()
 		self.previous_scan_pose = None
 		self.decision_required = True		
+		EstopGuard.initialize(['/estop', '/joystick_estop'], self.estop_changed_cb)
 		# align camera
 		self.actions.look_to(self.look_done_cb)
 

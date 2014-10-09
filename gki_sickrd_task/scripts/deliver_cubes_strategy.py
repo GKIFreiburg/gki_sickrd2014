@@ -15,7 +15,6 @@ from gki_sickrd_task.estop_guard import EstopGuard
 
 class DeliverCubesStrategy(object):
 	def __init__(self):
-		EstopGuard.initialize(['/estop', '/joystick_estop'], self.estop_changed_cb)
 		self.actions = Actions()
 		self.percepts = Percepts()
 		self.tools = Tools()
@@ -28,6 +27,7 @@ class DeliverCubesStrategy(object):
 		self.unloading_cube = False
 		self.cube_operation_timer = None
 		self.cube_operation_failure = False
+		EstopGuard.initialize(['/estop', '/joystick_estop'], self.estop_changed_cb)
 		# align camera
 		self.actions.look_to(self.look_done_cb)
 

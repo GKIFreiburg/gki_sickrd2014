@@ -16,6 +16,7 @@ from geometry_msgs.msg import PoseStamped, PoseWithCovariance, Pose
 from nav_msgs.msg import OccupancyGrid
 from std_msgs.msg import Bool, Int32
 from std_srvs.srv import Empty
+from nav_msgs.srv import GetPlan, GetPlanRequest, GetPlanResponse
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
 
 class NotEnoughDataException(Exception):
@@ -37,6 +38,7 @@ class Percepts(object):
 		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
 		self.barcode_enable_service = rospy.ServiceProxy('/barcode_detection/enable_detection', Empty)
 		self.barcode_disable_service = rospy.ServiceProxy('/barcode_detection/disable_detection', Empty)
+		self.check_path_service = rospy.ServiceProxy('/move_base/make_plan', GetPlan)
 		for service in [self.barcode_enable_service, self.barcode_disable_service]:
 			rospy.loginfo('waiting for service {}...'.format(service.resolved_name))
 			service.wait_for_service()
@@ -55,6 +57,12 @@ class Percepts(object):
 		center_transform = pm.fromMsg(stamped.pose)
 		stamped.pose = pm.toMsg(origin_transform * center_transform)
 		return stamped
+
+	def check_path(self, start, goal):
+		request = GetPlanRequest(start=start, goal=goal)
+		response = self.check_path_service.call(request)
+		response = GetPlanResponse()
+		return len(response.plan.poses) >= 2
 
 	def cube_loaded(self):
 		if not self.cube:
@@ -245,13 +253,15 @@ class Percepts(object):
 		current = self.tools.get_current_pose()
 		distance = 0.0
 		scan_distance = Params.get().optimal_exploration_distance
-		while distance < Params.get().min_travel_distance_for_rescan:
+		reachable = False
+		while distance < Params.get().min_travel_distance_for_rescan or not reachable:
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.75, scan_distance*1.33)
 			scan = copy.deepcopy(center)
 			scan.pose.position.x += center_distance * math.cos(map_yaw)
 			scan.pose.position.y += center_distance * math.sin(map_yaw)
 			distance = self.tools.xy_distance(current, scan)
+			reachable = self.check_path(current, scan)
 		rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
 		scan.pose.orientation.x = rotation[0]
 		scan.pose.orientation.y = rotation[1]

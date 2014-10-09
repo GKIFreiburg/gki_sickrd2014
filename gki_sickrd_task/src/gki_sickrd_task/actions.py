@@ -22,13 +22,14 @@ class Actions(object):
 		self.tools = Tools()
 		self.move_base_client = SimpleActionClient('/move_base', MoveBaseAction)
 		self.approach_client = SimpleActionClient('/approach_action', MoveBaseAction)
+		self.retreat_client = SimpleActionClient('/retreat_action', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
 		self.led_publishers = [rospy.Publisher('/led0', Led), rospy.Publisher('/led1', Led), rospy.Publisher('/led2', Led)]
 		self.approach_timeout_timer = None
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
 
-		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
+		for client in [self.move_base_client, self.approach_client, self.retreat_client, self.camera_ptz_client]:
 			if client:
 				rospy.loginfo('waiting for {} action server...'.format(client.action_client.ns))
 				client.wait_for_server()
@@ -80,7 +81,7 @@ class Actions(object):
 		goal.target_pose = self.tools.transform_pose('map', goal.target_pose)
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(goal.target_pose))
-		msg.markers[-1].color.r = 0.8
+		msg.markers[-1].color.r = 0.5
 		msg.markers[-1].color.g = 0.8
 		self.tools.visualization_publisher.publish(msg)
 		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
@@ -95,10 +96,10 @@ class Actions(object):
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(goal.target_pose))
 		msg.markers[-1].color.r = 0.8
-		msg.markers[-1].color.g = 0.8
+		msg.markers[-1].color.g = 0.5
 		self.tools.visualization_publisher.publish(msg)
 		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
-		self.approach_client.send_goal(goal, done_cb=done_cb)
+		self.retreat_client.send_goal(goal, done_cb=done_cb)
 
 	def cancel_move_timeout(self):
 		if not self.move_timeout_timer:
