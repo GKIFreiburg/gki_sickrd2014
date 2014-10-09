@@ -16,6 +16,38 @@ from geometry_msgs.msg import PoseStamped
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
 from gki_sickrd_task.params import Params
 from gki_sickrd_task.tools import Tools
+from actionlib_msgs.msg import GoalStatus
+
+class ActionWrapper(object):
+	def __init__(self, action_client, goal, done_cb, timeout_cb=None, timeout=None):
+		self._done_cb = done_cb
+		self._timeout_cb = None
+		self._timer = None
+		if timeout_cb and timeout:
+			self._timeout_cb = timeout_cb
+			self._timer = rospy.Timer(rospy.Duration(timeout), self.timeout_cb, oneshot=True)
+		self._action_client = action_client
+		self._action_client.send_goal(goal, done_cb=self.done_cb)
+
+	def is_active(self):
+		if self._action_client.get_state() == GoalStatus.ACTIVE:
+			return True
+		return False
+
+	def cancel(self):
+		self._action_client.cancel_all_goals()
+		if self._timer:
+			self._timer.shutdown()
+
+	def done_cb(self, status, result):
+		if self._timer:
+			if self._timer.is_alive():
+				self._timer.shutdown()
+		self._done_cb(status, result)
+
+	def timeout_cb(self, event):
+		self._action_client.cancel_all_goals()
+		self._timeout_cb(event)
 
 class Actions(object):
 	def __init__(self):
@@ -28,6 +60,7 @@ class Actions(object):
 		self.approach_timeout_timer = None
 		self.move_timeout_timer = None
 		self.cube_timeout_timer = None
+		self._action = None
 
 		for client in [self.move_base_client, self.approach_client, self.retreat_client, self.camera_ptz_client]:
 			if client:
@@ -37,12 +70,15 @@ class Actions(object):
 		rospy.loginfo('actions initialized')
 
 	def cancel_all_actions(self):
-		rospy.loginfo('canceling all actions...')
-		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
-			client.cancel_all_goals()
-		for timer in [self.approach_timeout_timer, self.move_timeout_timer, self.cube_timeout_timer]:
-			if timer:
-				timer.shutdown()
+		#rospy.loginfo('canceling all actions...')
+		if self._action:
+			if self._action.is_active():
+				self._action.cancel()
+# 		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
+# 			client.cancel_all_goals()
+# 		for timer in [self.approach_timeout_timer, self.move_timeout_timer, self.cube_timeout_timer]:
+# 			if timer:
+# 				timer.shutdown()
 		self.disable_LEDs()
 
 	def random_move(self, done_cb, timeout_cb):
@@ -60,32 +96,25 @@ class Actions(object):
 		stamped.header.stamp = rospy.Time.now()
 		self.move_to(stamped, done_cb, timeout_cb)
 
-	def stop(self):
-		self.cancel_move_timeout()
-		self.move_base_client.cancel_all_goals()
-
 	def move_to(self, stamped, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose = stamped
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(stamped))
 		self.tools.visualization_publisher.publish(msg)
-		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
-		self.move_base_client.send_goal(goal, done_cb=done_cb)
+		self.cancel_all_actions()
+		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params.get().move_base_timeout, action_client=self.move_base_client, goal=goal)
 
-	def approach(self, done_cb, timeout_cb):
+	def approach(self, stamped, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
-		goal.target_pose.header.frame_id = 'base_footprint'
-		goal.target_pose.pose.position.x = Params.get().approach_distance - Params.get().ring_distance
-		goal.target_pose.pose.orientation.w = 1
-		goal.target_pose = self.tools.transform_pose('map', goal.target_pose)
+		goal.target_pose = stamped
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(goal.target_pose))
 		msg.markers[-1].color.r = 0.5
 		msg.markers[-1].color.g = 0.8
 		self.tools.visualization_publisher.publish(msg)
-		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
-		self.approach_client.send_goal(goal, done_cb=done_cb)
+		self.cancel_all_actions()
+		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params.get().move_base_timeout, action_client=self.approach_client, goal=goal)
 
 	def retreat(self, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
@@ -98,14 +127,8 @@ class Actions(object):
 		msg.markers[-1].color.r = 0.8
 		msg.markers[-1].color.g = 0.5
 		self.tools.visualization_publisher.publish(msg)
-		self.move_timeout_timer = rospy.Timer(rospy.Duration(Params.get().move_base_timeout), timeout_cb, oneshot=True)
-		self.retreat_client.send_goal(goal, done_cb=done_cb)
-
-	def cancel_move_timeout(self):
-		if not self.move_timeout_timer:
-			return 
-		if self.move_timeout_timer.is_alive():
-			self.move_timeout_timer.shutdown()
+		self.cancel_all_actions()
+		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params.get().move_base_timeout, action_client=self.retreat_client, goal=goal)
 
 	def look_at(self, stamped, done_cb):
 		ps = Tools.tf_listener.transformPose('axis_link', stamped)
@@ -119,14 +142,16 @@ class Actions(object):
 		goal.tilt = Params.get().axis_tilt
 		goal.sweep_step = delta_yaw
 		goal.sweep_hold_time = duration
-		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
+		self.cancel_all_actions()
+		self._action = ActionWrapper(action_client=self.camera_ptz_client, goal=goal, done_cb=done_cb)
 
 	def look_to(self, done_cb, yaw=Params.get().axis_pan, pitch=Params.get().axis_tilt, zoom=1):
 		goal = CameraGoal()
 		goal.command = 1
 		goal.pan = yaw
 		goal.tilt = pitch
-		self.camera_ptz_client.send_goal(goal, done_cb=done_cb)
+		self.cancel_all_actions()
+		self._action = ActionWrapper(action_client=self.camera_ptz_client, goal=goal, done_cb=done_cb)
 
 	def start_cube_operation_timer(self, timeout_cb):
 		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params.get().cube_timeout), timeout_cb, oneshot=True)

@@ -22,7 +22,7 @@ class Params(object):
 		self._update()
 
 	def _update(self):
-		rospy.loginfo('updating parameters.')
+		#rospy.loginfo('updating parameters.')
 		self.max_loading_station_distance_from_center = rospy.get_param('max_loading_station_distance_from_center', 2.0)
 		self.optimal_exploration_distance = rospy.get_param('optimal_exploration_distance', 4.0)
 		self.approach_distance = rospy.get_param('approach_distance', 1.0)

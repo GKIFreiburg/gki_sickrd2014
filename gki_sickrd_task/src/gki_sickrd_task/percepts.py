@@ -35,11 +35,12 @@ class Percepts(object):
 		self.cube = None
 		self.cube_subscriber = rospy.Subscriber('/cube_sensor', Bool, self.cube_sensor_cb)
 		self.barcode = None
+		self.cube_number = -1
 		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
 		self.barcode_enable_service = rospy.ServiceProxy('/barcode_detection/enable_detection', Empty)
 		self.barcode_disable_service = rospy.ServiceProxy('/barcode_detection/disable_detection', Empty)
 		self.check_path_service = rospy.ServiceProxy('/move_base/make_plan', GetPlan)
-		for service in [self.barcode_enable_service, self.barcode_disable_service]:
+		for service in [self.barcode_enable_service, self.barcode_disable_service, self.check_path_service]:
 			rospy.loginfo('waiting for service {}...'.format(service.resolved_name))
 			service.wait_for_service()
 			rospy.loginfo('service {} is now available.'.format(service.resolved_name))
@@ -59,10 +60,8 @@ class Percepts(object):
 		return stamped
 
 	def check_path(self, start, goal):
-		request = GetPlanRequest(start=start, goal=goal)
-		response = self.check_path_service.call(request)
-		response = GetPlanResponse()
-		return len(response.plan.poses) >= 2
+		response = self.check_path_service.call(start=start, goal=goal)
+		return len(response.plan.poses) > 0
 
 	def cube_loaded(self):
 		if not self.cube:
@@ -70,14 +69,12 @@ class Percepts(object):
 		return self.cube.data
 
 	def current_number(self):
-		if not self.barcode:
-			raise NotEnoughDataException('no barcode detection message received.')
-		if self.barcode.data == -1:
+		if self.cube_number == -1:
 			raise NotEnoughDataException('no barcode detected.')
-		return self.barcode.data
+		return self.cube_number
 	
 	def clear_number(self):
-		self.barcode = None
+		self.cube_number == -1
 
 	def estimate_center_from_map(self):
 		if not self.map:
@@ -176,14 +173,15 @@ class Percepts(object):
 				marker.type = marker.TEXT_VIEW_FACING
 				marker.text = '{} ({})'.format(number, banner.info.support)
 				marker.ns = 'description'
-				marker.pose.position.z += 0.1
+				marker.pose.position.z += 0.3
+				marker.scale.z = 0.3
 				msg.markers.append(marker)
 				approach.ns = 'banner_approach'
 				approach.type = Marker.ARROW
 				stamped = self.sample_approach_pose(approach)
 				approach.pose = stamped.pose
 				msg.markers.append(approach)
-				rospy.loginfo('number {}: {}'.format(number, [b.info.support for b in banner_data]))
+				#rospy.loginfo('number {}: {}'.format(number, [b.info.support for b in banner_data]))
 			except NotEnoughDataException:
 				rospy.loginfo('number {} unknown.'.format(number))
 		self.tools.visualization_publisher.publish(msg)
@@ -259,10 +257,15 @@ class Percepts(object):
 		msg = MarkerArray()
 		while distance < Params.get().min_travel_distance_for_rescan or not reachable:
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
-			center_distance = self.tools.rnd.uniform(scan_distance*0.75, scan_distance*1.33)
+			center_distance = self.tools.rnd.uniform(scan_distance*0.9, scan_distance*1.11)
 			scan = copy.deepcopy(center)
 			scan.pose.position.x += center_distance * math.cos(map_yaw)
 			scan.pose.position.y += center_distance * math.sin(map_yaw)
+			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
+			scan.pose.orientation.x = rotation[0]
+			scan.pose.orientation.y = rotation[1]
+			scan.pose.orientation.z = rotation[2]
+			scan.pose.orientation.w = rotation[3]
 			distance = self.tools.xy_distance(current, scan)
 			reachable = self.check_path(current, scan)
 			msg.markers.append(self.tools.create_pose_marker(scan, ns='sampled', id=len(msg.markers), z_offset=0.2))
@@ -270,17 +273,14 @@ class Percepts(object):
 				self.tools.visualization_publisher.publish(msg)
 				msg = MarkerArray()
 			print 'distance {}, reachable {}'.format(distance, reachable)
-		rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
-		scan.pose.orientation.x = rotation[0]
-		scan.pose.orientation.y = rotation[1]
-		scan.pose.orientation.z = rotation[2]
-		scan.pose.orientation.w = rotation[3]
 		return scan
 
 	def enable_barcode_detection(self):
+		rospy.loginfo('enable barcode detection')
 		self.barcode_enable_service.call()
 
 	def disable_barcode_detection(self):
+		rospy.loginfo('disable barcode detection')
 		self.barcode_disable_service.call()
 
 	def worldmodel_cb(self, msg):
@@ -292,7 +292,14 @@ class Percepts(object):
 
 	def cube_sensor_cb(self, msg):
 		self.cube = msg
+		if not self.cube.data:
+			self.clear_number()
+		if self.cube.data and self.cube_number == -1:
+			self.enable_barcode_detection()
 
 	def barcode_cb(self, msg):
 		self.barcode = msg
+		if self.barcode.data != -1 and self.cube.data:
+			self.cube_number = self.barcode.data
+			#self.disable_barcode_detection()
 

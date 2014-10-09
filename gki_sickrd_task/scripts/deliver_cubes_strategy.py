@@ -33,14 +33,25 @@ class DeliverCubesStrategy(object):
 		# align camera
 		self.actions.look_to(self.look_done_cb)
 
+	def print_state(self):
+		rospy.loginfo('***')
+		if self.cube_operation_failure:
+			rospy.loginfo('cube operation failed, recovering...')
+		elif self.percepts.cube_loaded():
+			rospy.loginfo('cube loaded: {}'.format(self.percepts.current_number()))
+		else:
+			rospy.loginfo('no cube loaded.')
+
 	def decide(self, event):
-		if not self.decision_required:
+		try:
+			self.print_state()
 			try:
 				self.percepts.visualize_worldmodel()
 			except NotEnoughDataException:
 				pass
-			return 
-		try:
+			if not self.decision_required:
+				return 
+
 			Params.update()
 			self.percepts.estimate_center_from_map()
 
@@ -51,6 +62,7 @@ class DeliverCubesStrategy(object):
 					return
 				else:
 					self.cube_operation_failure = False
+					self.previous_scan_pose = None
 					self.explore()
 					return
 
@@ -93,21 +105,21 @@ class DeliverCubesStrategy(object):
 			rospy.logerr(traceback.format_exc())
 
 	def load_cube(self):
+		self.actions.enable_LEDs()
 		if not self.percepts.cube_loaded():
 			rospy.loginfo('waiting for cube...')
 			return # wait 
-		if self.percepts.barcode.value == -1:
+		if self.percepts.current_number() == -1:
 			rospy.loginfo('waiting for barcode...')
 			return # wait 
-		self.percepts.disable_barcode_detection()
 		self.loading_cube = False
 		self.actions.cancel_cube_timeout()
 
 	def unload_cube(self):
-		if self.percepts.cube.value:
+		self.actions.enable_LEDs()
+		if self.percepts.cube_loaded():
 			return # wait 
-		self.percepts.clear_number()
-		self.loading_cube = False
+		self.unloading_cube = False
 		self.actions.cancel_cube_timeout()
 
 	def approach_loading_station(self):
@@ -119,7 +131,7 @@ class DeliverCubesStrategy(object):
 		stamped.pose = loading_stations[0].pose.pose
 		if self.at_approach:
 			rospy.loginfo('approaching loading station...')
-			self.actions.approach(self.approach_loading_station_done_cb, self.approach_timeout_cb)
+			self.actions.approach(stamped, self.approach_loading_station_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
 		else:
 			rospy.loginfo('moving to loading station...')
@@ -135,7 +147,7 @@ class DeliverCubesStrategy(object):
 		stamped.pose = banner.pose.pose
 		if self.at_approach:
 			rospy.loginfo('approaching number {}...'.format(number))
-			self.actions.approach(self.approach_number_done_cb, self.approach_timeout_cb)
+			self.actions.approach(stamped, self.approach_number_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
 		else:
 			rospy.loginfo('moving to number {}...'.format(number))
@@ -153,14 +165,9 @@ class DeliverCubesStrategy(object):
 		# scan
 		if not self.previous_scan_pose:
 			self.previous_scan_pose = self.tools.get_current_pose()
-# 			rospy.loginfo('initial sweeping...')
-# 			self.actions.camera_sweep(self.sweep_done_cb)
-# 			self.decision_required = False
-# 			return
 		current_pose = self.tools.get_current_pose()
 		if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().min_travel_distance_for_rescan:
 			rospy.loginfo('sweeping...')
-			self.actions.stop()
 			self.actions.camera_sweep(self.sweep_done_cb)
 			self.decision_required = False
 			return
@@ -182,21 +189,17 @@ class DeliverCubesStrategy(object):
 	def approach_loading_station_done_cb(self, status, result):
 		if status == GoalStatus.SUCCEEDED:
 			rospy.loginfo('approach_loading_station: done')
-			self.actions.cancel_move_timeout()
 			self.at_ring = True
 			self.loading_cube = True
 			self.actions.enable_LEDs()
-			self.percepts.enable_barcode_detection()
 			self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
 		self.decision_required = True
 
 	def approach_number_done_cb(self, status, result):
 		if status == GoalStatus.SUCCEEDED:
 			rospy.loginfo('approach_number: done')
-			self.actions.cancel_move_timeout()
 			self.at_ring = True
 			self.unloading_cube = True
-			self.actions.enable_LEDs()
 			self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
 		self.decision_required = True
 
@@ -208,13 +211,11 @@ class DeliverCubesStrategy(object):
 	def preapproach_done_cb(self, status, result):
 		if status == GoalStatus.SUCCEEDED:
 			rospy.loginfo('pre-approach: done'.format(status, result))
-			self.actions.cancel_move_timeout()
 			self.at_approach = True
 		self.decision_required = True
 
 	def move_done_cb(self, status, result):
 		rospy.loginfo('move: done')
-		self.actions.cancel_move_timeout()
 		self.decision_required = True
 
 	def move_timeout_cb(self, event):
@@ -233,7 +234,6 @@ class DeliverCubesStrategy(object):
 
 	def cube_operation_timeout_cb(self, event):
 		rospy.loginfo('cube_operation: timeout')
-		self.percepts.disable_barcode_detection()
 		self.cube_operation_failure = True
 		self.decision_required = True
 

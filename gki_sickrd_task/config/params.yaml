@@ -1,4 +1,4 @@
-optimal_exploration_distance: 3.5
+optimal_exploration_distance: 2.5
 approach_distance: 1.0
 ring_distance: 0.3
 max_loading_station_distance_from_center: 2.5
