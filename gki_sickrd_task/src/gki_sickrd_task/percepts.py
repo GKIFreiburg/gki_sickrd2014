@@ -36,7 +36,8 @@ class Percepts(object):
 		self.cube_subscriber = rospy.Subscriber('/cube_sensor', Bool, self.cube_sensor_cb)
 		self.barcode = None
 		self.cube_number = -1
-		self.barcode_subscriber = rospy.Subscriber('/barcode_processing/barcode', Int32, self.barcode_cb)
+		self.detection_enabled = False
+		self.barcode_subscriber = rospy.Subscriber('/barcode', Int32, self.barcode_cb)
 		self.barcode_enable_service = rospy.ServiceProxy('/barcode_detection/enable_detection', Empty)
 		self.barcode_disable_service = rospy.ServiceProxy('/barcode_detection/disable_detection', Empty)
 		self.check_path_service = rospy.ServiceProxy('/move_base/make_plan', GetPlan)
@@ -273,12 +274,16 @@ class Percepts(object):
 		return scan
 
 	def enable_barcode_detection(self):
-		rospy.loginfo('enable barcode detection')
-		self.barcode_enable_service.call()
+		if not self.detection_enabled:
+			rospy.loginfo('enable barcode detection')
+			self.detection_enabled = True
+			self.barcode_enable_service.call()
 
 	def disable_barcode_detection(self):
-		rospy.loginfo('disable barcode detection')
-		self.barcode_disable_service.call()
+		if self.detection_enabled:
+			rospy.loginfo('disable barcode detection')
+			self.detection_enabled = False
+			self.barcode_disable_service.call()
 
 	def worldmodel_cb(self, msg):
 		self.model = msg
