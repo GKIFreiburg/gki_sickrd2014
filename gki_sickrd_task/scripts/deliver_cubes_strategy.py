@@ -12,6 +12,8 @@ from gki_sickrd_task.actions import Actions
 from gki_sickrd_task.percepts import Percepts, NotEnoughDataException
 from gki_sickrd_task.tools import Tools
 from gki_sickrd_task.estop_guard import EstopGuard
+from actionlib.simple_action_client import SimpleActionClient
+from actionlib_msgs.msg import GoalStatus
 
 class DeliverCubesStrategy(object):
 	def __init__(self):
@@ -33,11 +35,14 @@ class DeliverCubesStrategy(object):
 
 	def decide(self, event):
 		if not self.decision_required:
+			try:
+				self.percepts.visualize_worldmodel()
+			except NotEnoughDataException:
+				pass
 			return 
 		try:
 			Params.update()
 			self.percepts.estimate_center_from_map()
-			self.percepts.visualize_worldmodel()
 
 			# cube operation failure recovery
 			if self.cube_operation_failure:
@@ -147,10 +152,11 @@ class DeliverCubesStrategy(object):
 	def explore(self):
 		# scan
 		if not self.previous_scan_pose:
-			rospy.loginfo('initial sweeping...')
-			self.actions.camera_sweep(self.sweep_done_cb)
-			self.decision_required = False
-			return
+			self.previous_scan_pose = self.tools.get_current_pose()
+# 			rospy.loginfo('initial sweeping...')
+# 			self.actions.camera_sweep(self.sweep_done_cb)
+# 			self.decision_required = False
+# 			return
 		current_pose = self.tools.get_current_pose()
 		if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().min_travel_distance_for_rescan:
 			rospy.loginfo('sweeping...')
@@ -174,22 +180,24 @@ class DeliverCubesStrategy(object):
 		self.decision_required = True
 
 	def approach_loading_station_done_cb(self, status, result):
-		rospy.loginfo('approach_loading_station: done')
-		self.actions.cancel_move_timeout()
-		self.at_ring = True
-		self.loading_cube = True
-		self.actions.enable_LEDs()
-		self.percepts.enable_barcode_detection()
-		self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
+		if status == GoalStatus.SUCCEEDED:
+			rospy.loginfo('approach_loading_station: done')
+			self.actions.cancel_move_timeout()
+			self.at_ring = True
+			self.loading_cube = True
+			self.actions.enable_LEDs()
+			self.percepts.enable_barcode_detection()
+			self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
 		self.decision_required = True
 
 	def approach_number_done_cb(self, status, result):
-		rospy.loginfo('approach_number: done')
-		self.actions.cancel_move_timeout()
-		self.at_ring = True
-		self.unloading_cube = True
-		self.actions.enable_LEDs()
-		self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
+		if status == GoalStatus.SUCCEEDED:
+			rospy.loginfo('approach_number: done')
+			self.actions.cancel_move_timeout()
+			self.at_ring = True
+			self.unloading_cube = True
+			self.actions.enable_LEDs()
+			self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
 		self.decision_required = True
 
 	def retreat_done_cb(self, status, result):
@@ -198,9 +206,10 @@ class DeliverCubesStrategy(object):
 		self.decision_required = True
 
 	def preapproach_done_cb(self, status, result):
-		rospy.loginfo('pre-approach: done\n{}\n{}'.format(status, result))
-		self.actions.cancel_move_timeout()
-		self.at_approach = True
+		if status == GoalStatus.SUCCEEDED:
+			rospy.loginfo('pre-approach: done'.format(status, result))
+			self.actions.cancel_move_timeout()
+			self.at_approach = True
 		self.decision_required = True
 
 	def move_done_cb(self, status, result):

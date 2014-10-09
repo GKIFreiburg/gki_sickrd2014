@@ -176,6 +176,7 @@ class Percepts(object):
 				marker.type = marker.TEXT_VIEW_FACING
 				marker.text = '{} ({})'.format(number, banner.info.support)
 				marker.ns = 'description'
+				marker.pose.position.z += 0.1
 				msg.markers.append(marker)
 				approach.ns = 'banner_approach'
 				approach.type = Marker.ARROW
@@ -249,11 +250,13 @@ class Percepts(object):
 		return approach
 
 	def sample_scan_pose(self):
+		rospy.loginfo('sampling scan pose')
 		center = self.estimate_center_from_map()
 		current = self.tools.get_current_pose()
 		distance = 0.0
 		scan_distance = Params.get().optimal_exploration_distance
 		reachable = False
+		msg = MarkerArray()
 		while distance < Params.get().min_travel_distance_for_rescan or not reachable:
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.75, scan_distance*1.33)
@@ -262,6 +265,11 @@ class Percepts(object):
 			scan.pose.position.y += center_distance * math.sin(map_yaw)
 			distance = self.tools.xy_distance(current, scan)
 			reachable = self.check_path(current, scan)
+			msg.markers.append(self.tools.create_pose_marker(scan, ns='sampled', id=len(msg.markers), z_offset=0.2))
+			if len(msg.markers) > 20:
+				self.tools.visualization_publisher.publish(msg)
+				msg = MarkerArray()
+			print 'distance {}, reachable {}'.format(distance, reachable)
 		rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
 		scan.pose.orientation.x = rotation[0]
 		scan.pose.orientation.y = rotation[1]
