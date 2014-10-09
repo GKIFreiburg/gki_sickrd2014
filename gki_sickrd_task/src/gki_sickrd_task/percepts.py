@@ -72,9 +72,6 @@ class Percepts(object):
 		if self.cube_number == -1:
 			raise NotEnoughDataException('no barcode detected.')
 		return self.cube_number
-	
-	def clear_number(self):
-		self.cube_number == -1
 
 	def estimate_center_from_map(self):
 		if not self.map:
@@ -164,8 +161,8 @@ class Percepts(object):
 				msg.markers.append(self.tools.create_pose_marker(stamped, ns='number_banners'))
 				i = number + 4
 				msg.markers[-1].color.r = i/9*0.4
-				msg.markers[-1].color.g = i%9/3*0.4
-				msg.markers[-1].color.b = i%3*0.4
+				msg.markers[-1].color.g = i%9/3*0.4+0.1
+				msg.markers[-1].color.b = i%3*0.4+0.2
 				msg.markers[-1].type = Marker.CUBE
 				msg.markers[-1].id = number
 				approach = copy.deepcopy(msg.markers[-1])
@@ -292,8 +289,9 @@ class Percepts(object):
 
 	def cube_sensor_cb(self, msg):
 		self.cube = msg
-		if not self.cube.data:
-			self.clear_number()
+		if not self.cube.data and self.cube_number != -1:
+			rospy.loginfo('clear cube number')
+			self.cube_number = -1
 		if self.cube.data and self.cube_number == -1:
 			self.enable_barcode_detection()
 
@@ -301,5 +299,6 @@ class Percepts(object):
 		self.barcode = msg
 		if self.barcode.data != -1 and self.cube.data:
 			self.cube_number = self.barcode.data
-			#self.disable_barcode_detection()
+			rospy.loginfo('new cube number: {}'.format(self.cube_number))
+			self.disable_barcode_detection()
 
