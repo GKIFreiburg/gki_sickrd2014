@@ -76,9 +76,9 @@ class Tools(object):
 			station.pose = copy.deepcopy(pose_percept.pose.pose)
 			station.ns = 'loading_stations'
 			station.id = id
-			station.color.r = 0.7
-			station.color.g = 0.9
-			station.color.b = 0.7
+			station.color.r = 0.4
+			station.color.g = 0.4
+			station.color.b = 0.8
 			station.color.a = 1.0
 			station.type = Marker.CUBE
 			station.scale.x = 0.02

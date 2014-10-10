@@ -1,1 +1,3 @@
 worldmodel_ageing_rate: 0.1
+
+estop_topics: ["/estop", "/joystick_estop"]

@@ -29,7 +29,6 @@ class Percepts(object):
 		self.tools = Tools()
 		self.model = None
 		self.worldmodel_subscriber = rospy.Subscriber('/worldmodel/objects', ObjectModel, self.worldmodel_cb)
-		self.ageing_publisher = WorldmodelAgeing()
 		self.estimated_map_center = None
 		self.map = None
 		self.map_center_need_update = False
@@ -166,6 +165,16 @@ class Percepts(object):
 			raise NotEnoughDataException('no known loading stations.')
 		return lines
 
+	def get_closest_wall(self, point):
+		if not self.model:
+			raise NotEnoughDataException('no worldmodel message received.')
+		model = self.model
+		lines = [object for object in self.model.objects if object.info.class_id == 'connected_lines' and self.tools.xy_point_distance(object.pose.pose.position, point) < Params().approach_distance]
+		if len(lines) == 0:
+			raise NotEnoughDataException('no known walls.')
+		lines.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, point))
+		return lines[0]
+
 	def get_number_banner(self, number):
 		banners = self.get_number_banner_data(number)
 		return banners[0]
@@ -194,42 +203,46 @@ class Percepts(object):
 		else:
 			approach = copy.deepcopy(stamped)
 		if self.tools.xy_distance(center, stamped) < Params().max_loading_station_distance_from_center:
-			# project in pose direction
-			rotation = tf.transformations.quaternion_from_euler(0, 0, math.pi)
-			pose = Pose()
-			pose.position.x = Params().approach_distance
-			pose.orientation.x = rotation[0]
-			pose.orientation.y = rotation[1]
-			pose.orientation.z = rotation[2]
-			pose.orientation.w = rotation[3]
-			approach.pose = self.tools.add_poses(stamped.pose, pose)
-			approach.pose.position.z = 0
+			yaw = self.get_yaw(stamped.pose)
+			projected = self.set_orientation_from_yaw(stamped.pose, yaw)
+			projected.position.z = 0
+			offset = self.set_orientation_from_yaw(Pose(), yaw)
+			offset.position.x = Params().approach_distance
+			approach.pose = self.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
 		else:
-			# project inward
-# 			map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
-# 			approach.pose.position.x -= Params().approach_distance * math.cos(map_yaw)
-# 			approach.pose.position.y -= Params().approach_distance * math.sin(map_yaw)
-# 			approach.pose.position.z = 0
-# 			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw)
-# 			approach.pose.orientation.x = rotation[0]
-# 			approach.pose.orientation.y = rotation[1]
-# 			approach.pose.orientation.z = rotation[2]
-# 			approach.pose.orientation.w = rotation[3]
-			# cleanup pose
-			quaterion = [approach.pose.orientation.x, approach.pose.orientation.y, approach.pose.orientation.z, approach.pose.orientation.w]
-			matrix = tf.transformations.quaternion_matrix(quaternion)
-			tf.transformations.rotation_from_matrix(matrix)
-			roll, pitch, yaw = tf.transformations.euler_from_matrix(matrix)
-			rotation = tf.transformations.quaternion_from_euler(0, 0, yaw)
-			pose = Pose()
-			pose.position.x = Params().approach_distance
-			pose.orientation.x = rotation[0]
-			pose.orientation.y = rotation[1]
-			pose.orientation.z = rotation[2]
-			pose.orientation.w = rotation[3]
-			approach.pose = self.tools.add_poses(stamped.pose, pose)
-			approach.pose.position.z = 0
+			yaw = self.get_yaw(stamped.pose)
+			try:
+				yaw = self.get_direction_from_closest_wall(stamped.pose.position)
+			except NotEnoughDataException:
+				pass
+			projected = self.set_orientation_from_yaw(stamped.pose, yaw)
+			projected.position.z = 0
+			offset = self.set_orientation_from_yaw(Pose(), yaw)
+			offset.position.x = Params().approach_distance
+			approach.pose = self.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
 		return approach
+	
+	def get_direction_from_closest_wall(self, point):
+		closest_wall = self.get_closest_wall(point)
+		return self.get_yaw(closest_wall.pose.pose)
+	
+	def get_yaw(self, pose):
+		frame = pm.fromMsg(pose)
+		[roll, pitch, yaw] = frame.M.GetRPY()
+		return yaw
+	
+	def project_pose(self, pose):
+		frame = pm.fromMsg(pose)
+		[roll, pitch, yaw] = frame.M.GetRPY()
+		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
+		projected = pm.toMsg(frame)
+		projected.position.z = 0
+		return projected
+
+	def set_orientation_from_yaw(self, pose, yaw):
+		frame = pm.fromMsg(pose)
+		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
+		return pm.toMsg(frame)
 
 	def sample_scan_pose(self):
 		rospy.loginfo('sampling scan pose')
