@@ -1,4 +1,6 @@
 optimal_exploration_distance: 1.5
+min_verification_distance: 2.0
+max_verification_distance: 5.0
 approach_distance: 1.0
 ring_distance: 0.3
 max_loading_station_distance_from_center: 1.5

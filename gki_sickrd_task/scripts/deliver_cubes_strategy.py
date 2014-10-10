@@ -137,7 +137,7 @@ class DeliverCubesStrategy(object):
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
 			stamped.header = loading_stations[0].header
-			stamped.pose = self.percepts.project_pose(loading_stations[0].pose.pose)
+			stamped.pose = self.tools.project_pose(loading_stations[0].pose.pose)
 			stamped.pose.position.z = -0.01
 			self.actions.approach(stamped, self.approach_loading_station_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
@@ -148,21 +148,21 @@ class DeliverCubesStrategy(object):
 			self.actions.move_to(approach, self.preapproach_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
-	def verify_number(self):
-		number = self.percepts.current_number()
-		banner = self.percepts.get_number_banner(number)
-		if banner.info.support < Params().min_verified_support:
-			self.actions.look_at(stamped, done_cb)
-
 	def approach_number(self):
 		number = self.percepts.current_number()
 		banner = self.percepts.get_number_banner(number)
-		if self.at_approach:
+		#if banner.info.support < Params().min_trusted_support:
+			# go to some good pose
+			# look at the number for x seconds
+			#self.actions.look_at(stamped, done_cb)
+		#	pass
+		#el
+		if self.at_approach: # FIXME: remove at approach
 			self.status_string = 'approaching number {}...'.format(number)
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
 			stamped.header = banner.header
-			stamped.pose = self.percepts.project_pose(banner.pose.pose)
+			stamped.pose = self.tools.project_pose(banner.pose.pose)
 			stamped.pose.position.z = 0.01
 			self.actions.approach(stamped, self.approach_number_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
@@ -213,19 +213,19 @@ class DeliverCubesStrategy(object):
 		if status == GoalStatus.SUCCEEDED:
 			self.status_string = 'approach_loading_station: done'
 			rospy.loginfo(self.status_string)
-			self.at_ring = True
 			self.loading_cube = True
 			self.actions.enable_LEDs()
 			self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
+		self.at_ring = True
 		self.decision_required = True
 
 	def approach_number_done_cb(self, status, result):
 		if status == GoalStatus.SUCCEEDED:
 			self.status_string = 'approach_number: done'
 			rospy.loginfo(self.status_string)
-			self.at_ring = True
 			self.unloading_cube = True
 			self.actions.start_cube_operation_timer(self.cube_operation_timeout_cb)
+		self.at_ring = True
 		self.decision_required = True
 
 	def retreat_done_cb(self, status, result):
@@ -254,9 +254,8 @@ class DeliverCubesStrategy(object):
 	def approach_timeout_cb(self, event):
 		self.status_string = 'approach: timeout'
 		rospy.loginfo(self.status_string)
-		# TODO: do something here... retreat?
-		self.retreat()
-		self.decision_required = False
+		self.at_ring
+		self.decision_required = True
 
 	def retreat_timeout_cb(self, event):
 		self.status_string = 'retreat: timeout'
