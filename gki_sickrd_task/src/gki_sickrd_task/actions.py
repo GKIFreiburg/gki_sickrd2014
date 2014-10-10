@@ -99,6 +99,7 @@ class Actions(object):
 	def move_to(self, stamped, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose = stamped
+		goal.target_pose.header.stamp = rospy.Time(0)
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(stamped))
 		self.tools.visualization_publisher.publish(msg)
@@ -108,6 +109,7 @@ class Actions(object):
 	def approach(self, stamped, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose = stamped
+		goal.target_pose.header.stamp = rospy.Time(0)
 		msg = MarkerArray()
 		msg.markers.append(self.tools.create_pose_marker(goal.target_pose))
 		msg.markers[-1].color.r = 0.5
@@ -120,6 +122,7 @@ class Actions(object):
 		goal = MoveBaseGoal()
 		goal.target_pose.header.frame_id = 'base_footprint'
 		goal.target_pose.pose.position.x = -(Params().approach_distance - Params().ring_distance)
+		goal.target_pose.header.stamp = rospy.Time(0)
 		goal.target_pose.pose.orientation.w = 1
 		goal.target_pose = self.tools.transform_pose('map', goal.target_pose)
 		msg = MarkerArray()

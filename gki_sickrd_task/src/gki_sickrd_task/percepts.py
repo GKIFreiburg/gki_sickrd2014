@@ -252,7 +252,7 @@ class Percepts(object):
 		scan_distance = Params().optimal_exploration_distance
 		reachable = False
 		msg = MarkerArray()
-		while distance < Params().min_travel_distance_for_rescan or not reachable:
+		for i in range(100):
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.9, scan_distance*1.11)
 			scan = copy.deepcopy(center)
@@ -265,6 +265,8 @@ class Percepts(object):
 			scan.pose.orientation.w = rotation[3]
 			distance = self.tools.xy_distance(current, scan)
 			reachable = self.check_path(current, scan)
+			if distance > Params().min_travel_distance_for_rescan and reachable:
+				raise NotEnoughDataException('could not sample exploration pose.')
 			msg.markers.append(self.tools.create_pose_marker(scan, ns='sampled', id=len(msg.markers), z_offset=0.2))
 			if len(msg.markers) > 20:
 				self.tools.visualization_publisher.publish(msg)

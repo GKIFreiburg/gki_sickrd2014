@@ -12,8 +12,8 @@ ChannelController:
 
   max_channel_length: 3.0
 
-  min_get_to_safe_dist_time: 7.0
-  max_get_to_safe_dist_time: 20.0
+  min_get_to_safe_dist_time: 5.0
+  max_get_to_safe_dist_time: 15.0
   waypoint_reached_dist: 0.6
   waypoint_reached_dist_at_max_tv: 1.3
   waypoint_reached_angle: 7.0
