@@ -5,7 +5,11 @@ max_loading_station_distance_from_center: 2.5
 min_travel_distance_for_rescan: 2.0
 cube_timeout: 30.0
 move_base_timeout: 30.0
+approach_timeout: 30.0
+worldmodel_ageing_rate: 0.1
 axis_pan: 0.0
 axis_tilt: -0.3
 axis_sweep_duration: 1.0
 axis_sweep_angle: 0.3
+
+estop_topics: ["/estop", "/joystick_estop"]

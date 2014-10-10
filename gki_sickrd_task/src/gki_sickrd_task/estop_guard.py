@@ -4,18 +4,21 @@ import roslib; roslib.load_manifest("gki_sickrd_task")
 import rospy
 
 from std_msgs.msg import Bool
+from gki_sickrd_task.params import Params
 
 class EstopGuard(object):
-	_instances = []
-	_changed_cb = None
+	_instances = None
+	_observers = None
 
 	@staticmethod
-	def initialize(estop_topics, estop_changed_cb):
-		EstopGuard._instances = []
-		EstopGuard._changed_cb = estop_changed_cb
-		for topic in estop_topics:
-			EstopGuard._instances.append(EstopGuard(topic))
-		rospy.loginfo('estop guard initialized.')
+	def add_callback(estop_changed_cb):
+		if not EstopGuard._observers:
+			EstopGuard._observers = []
+			EstopGuard._instances = []
+			for topic in Params().estop_topics:
+				EstopGuard._instances.append(EstopGuard(topic))
+			rospy.loginfo('estop guard initialized.')
+		EstopGuard._observers.append(estop_changed_cb)
 
 	@staticmethod
 	def _any_triggered():
@@ -39,4 +42,5 @@ class EstopGuard(object):
 		self.estop = msg
 		new = EstopGuard._any_triggered()
 		if old != new:
-			EstopGuard._changed_cb(new)
+			for notify_cb in EstopGuard._observers:
+				notify_cb(new)

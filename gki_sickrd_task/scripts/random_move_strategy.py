@@ -18,7 +18,7 @@ class RandomMoveStrategy(object):
 		self.tools = Tools()
 		self.previous_scan_pose = None
 		self.decision_required = True		
-		EstopGuard.initialize(['/estop', '/joystick_estop'], self.estop_changed_cb)
+		EstopGuard.add_callback(self.estop_changed_cb)
 		# align camera
 		self.actions.look_to(self.look_done_cb)
 
@@ -38,7 +38,7 @@ class RandomMoveStrategy(object):
 				return
 				
 			current_pose = self.tools.get_current_pose()
-			if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params.get().min_travel_distance_for_rescan:
+			if self.tools.xy_distance(self.previous_scan_pose, current_pose) > Params().min_travel_distance_for_rescan:
 				rospy.loginfo('sweeping...')
 				self.actions.stop()
 				self.actions.camera_sweep(self.sweep_done_cb)
@@ -85,8 +85,6 @@ class RandomMoveStrategy(object):
 
 if __name__ == "__main__":
 	rospy.init_node("sickrd_task")
-	
-	# strategy
 	strategy = RandomMoveStrategy()
 	decision_timer = rospy.Timer(rospy.Duration(1.0), strategy.decide)
 	rospy.spin()

@@ -10,7 +10,7 @@ import tf
 import tf_conversions.posemath as pm
 import PyKDL
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point
 
 class Tools(object):
 	tf_listener = None
@@ -46,6 +46,88 @@ class Tools(object):
 		marker.id = id
 		return marker
 	
+	def create_delete_marker(self, ns, id):
+		marker = Marker()
+		marker.header.frame_id = 'map'
+		marker.pose.orientation.w = 1
+		marker.action = Marker.DELETE
+		return marker
+		
+	def create_status_marker(self, text):
+		marker = Marker()
+		marker.header.frame_id = 'base_footprint'
+		marker.pose.position.z += 1
+		marker.pose.orientation.w = 1
+		marker.type = Marker.TEXT_VIEW_FACING
+		marker.text = text
+		marker.frame_locked = True
+		marker.ns = 'status'
+		marker.scale.z = 0.3
+		marker.color.r = 0.8
+		marker.color.g = 0.5
+		marker.color.b = 0.1
+		marker.color.a = 1.0
+		return marker
+		
+	def create_loading_station_markers(self, pose_percept=None, approach_pose=None, id=0):
+		if pose_percept:
+			station = Marker()
+			station.header.frame_id = pose_percept.header.frame_id
+			station.pose = copy.deepcopy(pose_percept.pose.pose)
+			station.ns = 'loading_stations'
+			station.id = id
+			station.color.r = 0.7
+			station.color.g = 0.9
+			station.color.b = 0.7
+			station.color.a = 1.0
+			station.type = Marker.CUBE
+			station.scale.x = 0.02
+			station.scale.y = 0.2
+			station.scale.z = 0.2
+			if approach_pose:
+				approach = copy.deepcopy(station)
+				approach.ns = 'loading_approach'
+				approach.type = Marker.ARROW
+				approach.pose = copy.deepcopy(approach_pose.pose)
+				approach.scale = Point(0.2, 0.1, 0.1)
+			else:
+				approach = self.create_delete_marker('loading_approach', id)
+			return station, approach
+		return self.create_delete_marker('loading_stations', id), self.create_delete_marker('loading_approach', id)
+
+	def create_banner_markers(self, pose_percept=None, approach_pose=None, id=0):
+		if pose_percept:
+			banner = Marker()
+			banner.header.frame_id = pose_percept.header.frame_id
+			banner.pose = copy.deepcopy(pose_percept.pose.pose)
+			banner.ns = 'number_banners'
+			banner.id = id
+			i = id + 4
+			banner.color.r = i/9*0.4
+			banner.color.g = i%9/3*0.4+0.1
+			banner.color.b = i%3*0.4+0.2
+			banner.color.a = 1.0
+			banner.type = Marker.CUBE
+			banner.scale.x = 0.02
+			banner.scale.y = 0.2
+			banner.scale.z = 0.2
+			label = copy.deepcopy(banner)
+			label.type = Marker.TEXT_VIEW_FACING
+			label.text = '{} ({:3.1f})'.format(id, pose_percept.info.support)
+			label.ns = 'banner_label'
+			label.pose.position.z += 0.4
+			label.scale.z = 0.4
+			if approach_pose:
+				approach = copy.deepcopy(banner)
+				approach.ns = 'banner_approach'
+				approach.type = Marker.ARROW
+				approach.pose = copy.deepcopy(approach_pose.pose)
+				approach.scale = Point(0.2, 0.1, 0.1)
+			else:
+				approach = self.create_delete_marker('banner_approach', id)
+			return banner, label, approach
+		return self.create_delete_marker('number_banners', id), self.create_delete_marker('banner_label', id), self.create_delete_marker('banner_approach', id)
+
 	def get_current_pose(self, frame_id='map'):
 		pose = PoseStamped()
 		pose.pose.orientation.w = 1

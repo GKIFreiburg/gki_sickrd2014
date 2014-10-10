@@ -103,7 +103,7 @@ class Actions(object):
 		msg.markers.append(self.tools.create_pose_marker(stamped))
 		self.tools.visualization_publisher.publish(msg)
 		self.cancel_all_actions()
-		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params.get().move_base_timeout, action_client=self.move_base_client, goal=goal)
+		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().move_base_timeout, action_client=self.move_base_client, goal=goal)
 
 	def approach(self, stamped, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
@@ -114,12 +114,12 @@ class Actions(object):
 		msg.markers[-1].color.g = 0.8
 		self.tools.visualization_publisher.publish(msg)
 		self.cancel_all_actions()
-		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params.get().move_base_timeout, action_client=self.approach_client, goal=goal)
+		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().approach_timeout, action_client=self.approach_client, goal=goal)
 
 	def retreat(self, done_cb, timeout_cb):
 		goal = MoveBaseGoal()
 		goal.target_pose.header.frame_id = 'base_footprint'
-		goal.target_pose.pose.position.x = -(Params.get().approach_distance - Params.get().ring_distance)
+		goal.target_pose.pose.position.x = -(Params().approach_distance - Params().ring_distance)
 		goal.target_pose.pose.orientation.w = 1
 		goal.target_pose = self.tools.transform_pose('map', goal.target_pose)
 		msg = MarkerArray()
@@ -128,7 +128,7 @@ class Actions(object):
 		msg.markers[-1].color.g = 0.5
 		self.tools.visualization_publisher.publish(msg)
 		self.cancel_all_actions()
-		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params.get().move_base_timeout, action_client=self.retreat_client, goal=goal)
+		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().approach_timeout, action_client=self.retreat_client, goal=goal)
 
 	def look_at(self, stamped, done_cb):
 		ps = Tools.tf_listener.transformPose('axis_link', stamped)
@@ -136,16 +136,24 @@ class Actions(object):
 		pitch = math.atan2(ps.pose.position.z, ps.pose.position.x)
 		self.look_to(done_cb, yaw, pitch)
 
-	def camera_sweep(self, done_cb, delta_yaw=Params.get().axis_sweep_angle, duration=Params.get().axis_sweep_duration, zoom=1):
+	def camera_sweep(self, done_cb, delta_yaw=None, duration=None, zoom=1):
+		if not delta_yaw:
+			delta_yaw = Params().axis_sweep_angle
+		if not duration:
+			duration = Params().axis_sweep_duration
 		goal = CameraGoal()
 		goal.command = 2 #sweep
-		goal.tilt = Params.get().axis_tilt
+		goal.tilt = Params().axis_tilt
 		goal.sweep_step = delta_yaw
 		goal.sweep_hold_time = duration
 		self.cancel_all_actions()
 		self._action = ActionWrapper(action_client=self.camera_ptz_client, goal=goal, done_cb=done_cb)
 
-	def look_to(self, done_cb, yaw=Params.get().axis_pan, pitch=Params.get().axis_tilt, zoom=1):
+	def look_to(self, done_cb, yaw=None, pitch=None, zoom=1):
+		if not yaw:
+			yaw = Params().axis_pan
+		if not pitch:
+			pitch = Params().axis_tilt
 		goal = CameraGoal()
 		goal.command = 1
 		goal.pan = yaw
@@ -154,7 +162,7 @@ class Actions(object):
 		self._action = ActionWrapper(action_client=self.camera_ptz_client, goal=goal, done_cb=done_cb)
 
 	def start_cube_operation_timer(self, timeout_cb):
-		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params.get().cube_timeout), timeout_cb, oneshot=True)
+		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params().cube_timeout), timeout_cb, oneshot=True)
 
 	def cancel_cube_timeout(self):
 		if not self.cube_timeout_timer:

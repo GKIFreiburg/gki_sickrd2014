@@ -14,20 +14,37 @@ from gki_sickrd_task.params import Params
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, PoseWithCovariance, Pose
 from nav_msgs.msg import OccupancyGrid
-from std_msgs.msg import Bool, Int32
+from std_msgs.msg import Bool, Int32, Float32
 from std_srvs.srv import Empty
 from nav_msgs.srv import GetPlan, GetPlanRequest, GetPlanResponse
 from hector_worldmodel_msgs.msg import ObjectModel, Object, ObjectInfo
+from gki_sickrd_task.estop_guard import EstopGuard
 
 class NotEnoughDataException(Exception):
 	def __init__(self, message):
 		self.message = message
+
+class WorldmodelAgeing(object):
+	def __init__(self):
+		self.worldmodel_ageing_publisher = rospy.Publisher('/worldmodel/object_ageing', Float32)
+		self.stop = False
+		self.last_ageing = rospy.Time.now()
+		rospy.Timer(rospy.Duration(1.0), self.ageing_cb)
+		EstopGuard.add_callback(self.estop_changed_cb)
+
+	def estop_changed_cb(self, stop):
+		self.stop = stop
+
+	def ageing_cb(self, event):
+		if not self.stop:
+			self.worldmodel_ageing_publisher.publish(Float32(data=Params().worldmodel_ageing_rate))
 
 class Percepts(object):
 	def __init__(self):
 		self.tools = Tools()
 		self.model = None
 		self.worldmodel_subscriber = rospy.Subscriber('/worldmodel/objects', ObjectModel, self.worldmodel_cb)
+		self.ageing_publisher = WorldmodelAgeing()
 		self.estimated_map_center = None
 		self.map = None
 		self.map_center_need_update = False
@@ -127,61 +144,31 @@ class Percepts(object):
 		self.tools.visualization_publisher.publish(msg)
 		return stamped
 
-	def visualize_worldmodel(self):
+	def visualize_worldmodel(self, status_string=''):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		msg = MarkerArray()
 		# loading stations
+		id = 0
 		try:
-			for station in self.get_loading_stations():
-				stamped = PoseStamped()
-				stamped.header.frame_id = self.map.header.frame_id
-				stamped.pose = station.pose.pose
-				msg.markers.append(self.tools.create_pose_marker(stamped, ns='loading_stations'))
-				msg.markers[-1].color.r = 0.8
-				msg.markers[-1].color.g = 0.8
-				msg.markers[-1].color.b = 0.8
-				msg.markers[-1].type = Marker.CUBE
-				msg.markers[-1].id = len(msg.markers)
-				approach = copy.deepcopy(msg.markers[-1])
-				approach.ns = 'loading_approach'
-				approach.type = Marker.ARROW
-				stamped = self.sample_approach_pose(approach)
-				approach.pose = stamped.pose
-				msg.markers.append(approach)
+			for id, station in enumerate(self.get_loading_stations()):
+				approach_pose = self.sample_approach_pose(station.pose.pose, station.header.frame_id)
+				msg.markers.extend(self.tools.create_loading_station_markers(station, approach_pose, id))
 		except NotEnoughDataException:
 			rospy.loginfo('no loading stations known.')
+		finally:
+			for id in range(id+1, 10):
+				msg.markers.extend(self.tools.create_loading_station_markers(id=id))
 		# banners
 		for number in range(10):
 			try:
-				banner_data = self.get_number_banner_data(number)
-				banner = banner_data[0]
-				stamped = PoseStamped()
-				stamped.header.frame_id = self.map.header.frame_id
-				stamped.pose = banner.pose.pose
-				msg.markers.append(self.tools.create_pose_marker(stamped, ns='number_banners'))
-				i = number + 4
-				msg.markers[-1].color.r = i/9*0.4
-				msg.markers[-1].color.g = i%9/3*0.4+0.1
-				msg.markers[-1].color.b = i%3*0.4+0.2
-				msg.markers[-1].type = Marker.CUBE
-				msg.markers[-1].id = number
-				approach = copy.deepcopy(msg.markers[-1])
-				marker = copy.deepcopy(msg.markers[-1])
-				marker.type = marker.TEXT_VIEW_FACING
-				marker.text = '{} ({})'.format(number, banner.info.support)
-				marker.ns = 'description'
-				marker.pose.position.z += 0.3
-				marker.scale.z = 0.3
-				msg.markers.append(marker)
-				approach.ns = 'banner_approach'
-				approach.type = Marker.ARROW
-				stamped = self.sample_approach_pose(approach)
-				approach.pose = stamped.pose
-				msg.markers.append(approach)
-				#rospy.loginfo('number {}: {}'.format(number, [b.info.support for b in banner_data]))
+				banner = self.get_number_banner(number)
+				approach = self.sample_approach_pose(banner.pose.pose, banner.header.frame_id)
+				msg.markers.extend(self.tools.create_banner_markers(banner, approach, id=number))
 			except NotEnoughDataException:
-				rospy.loginfo('number {} unknown.'.format(number))
+				#rospy.loginfo('number {} unknown.'.format(number))
+				msg.markers.extend(self.tools.create_banner_markers(id=number))
+		msg.markers.append(self.tools.create_status_marker(text=status_string))
 		self.tools.visualization_publisher.publish(msg)
 
 	def get_loading_stations(self):
@@ -189,7 +176,7 @@ class Percepts(object):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		model = self.model
-		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < Params.get().max_loading_station_distance_from_center]
+		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < Params().max_loading_station_distance_from_center]
 		if len(lines) == 0:
 			raise NotEnoughDataException('no known loading stations.')
 		return lines
@@ -213,19 +200,19 @@ class Percepts(object):
 		stamped = PoseStamped()
 		stamped.header.frame_id = frame_id
 		stamped.pose = pose
-		return self.sample_approach_pose(stamped)
+		return self.sample_approach_stamped(stamped)
 		
-	def sample_approach_pose(self, stamped):
+	def sample_approach_stamped(self, stamped):
 		center = self.estimate_center_from_map()
 		if stamped.header.frame_id != center.header.frame_id:
 			approach = self.tools.transform_pose(center.header.frame_id, stamped)
 		else:
 			approach = copy.deepcopy(stamped)
-		if self.tools.xy_distance(center, stamped) < Params.get().max_loading_station_distance_from_center:
+		if self.tools.xy_distance(center, stamped) < Params().max_loading_station_distance_from_center:
 			# project in pose direction
 			rotation = tf.transformations.quaternion_from_euler(0, 0, math.pi)
 			pose = Pose()
-			pose.position.x = Params.get().approach_distance
+			pose.position.x = Params().approach_distance
 			pose.orientation.x = rotation[0]
 			pose.orientation.y = rotation[1]
 			pose.orientation.z = rotation[2]
@@ -235,8 +222,8 @@ class Percepts(object):
 		else:
 			# project inward
 			map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
-			approach.pose.position.x -= Params.get().approach_distance * math.cos(map_yaw)
-			approach.pose.position.y -= Params.get().approach_distance * math.sin(map_yaw)
+			approach.pose.position.x -= Params().approach_distance * math.cos(map_yaw)
+			approach.pose.position.y -= Params().approach_distance * math.sin(map_yaw)
 			approach.pose.position.z = 0
 			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw)
 			approach.pose.orientation.x = rotation[0]
@@ -250,10 +237,10 @@ class Percepts(object):
 		center = self.estimate_center_from_map()
 		current = self.tools.get_current_pose()
 		distance = 0.0
-		scan_distance = Params.get().optimal_exploration_distance
+		scan_distance = Params().optimal_exploration_distance
 		reachable = False
 		msg = MarkerArray()
-		while distance < Params.get().min_travel_distance_for_rescan or not reachable:
+		while distance < Params().min_travel_distance_for_rescan or not reachable:
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.9, scan_distance*1.11)
 			scan = copy.deepcopy(center)
