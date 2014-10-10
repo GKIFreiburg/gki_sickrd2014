@@ -51,7 +51,7 @@ class Tools(object):
 		marker.header.frame_id = 'map'
 		marker.pose.orientation.w = 1
 		marker.action = Marker.DELETE
-        marker.id = id
+		marker.id = id
 		return marker
 		
 	def create_status_marker(self, text):
