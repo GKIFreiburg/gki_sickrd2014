@@ -110,8 +110,10 @@ class Tools(object):
 			banner.color.g = i%9/3*0.4+0.1
 			banner.color.b = i%3*0.4+0.2
 			banner.color.a = 1.0
-			banner.type = Marker.CUBE
-			banner.scale.x = 0.02
+			#banner.type = Marker.CUBE
+			banner.type = Marker.ARROW
+			banner.scale.x = 0.4
+			#banner.scale.x = 0.02
 			banner.scale.y = 0.2
 			banner.scale.z = 0.2
 			label = copy.deepcopy(banner)

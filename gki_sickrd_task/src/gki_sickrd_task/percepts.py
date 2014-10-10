@@ -253,6 +253,7 @@ class Percepts(object):
 			approach.pose = self.tools.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
 		else:
 			yaw = self.tools.get_yaw(stamped.pose)
+			yaw += math.pi
 			try:
 				yaw = self.get_direction_from_closest_wall(stamped.pose.position)
 			except NotEnoughDataException:
