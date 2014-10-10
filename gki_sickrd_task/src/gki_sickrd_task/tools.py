@@ -156,3 +156,24 @@ class Tools(object):
 	def xy_point_distance(self, p1, p2):
 		return math.hypot(p1.x-p2.x, p1.y-p2.y)
 	
+	def get_yaw(self, pose):
+		frame = pm.fromMsg(pose)
+		[roll, pitch, yaw] = frame.M.GetRPY()
+		return yaw
+	
+	def project_pose(self, pose):
+		frame = pm.fromMsg(pose)
+		[roll, pitch, yaw] = frame.M.GetRPY()
+		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
+		projected = pm.toMsg(frame)
+		projected.position.z = 0
+		return projected
+
+	def set_orientation_from_yaw(self, pose, yaw):
+		frame = pm.fromMsg(pose)
+		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
+		return pm.toMsg(frame)
+
+	def sample_verification_pose(self, banner):
+		pass
+	

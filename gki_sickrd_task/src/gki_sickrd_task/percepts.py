@@ -203,47 +203,29 @@ class Percepts(object):
 		else:
 			approach = copy.deepcopy(stamped)
 		if self.tools.xy_distance(center, stamped) < Params().max_loading_station_distance_from_center:
-			yaw = self.get_yaw(stamped.pose)
-			projected = self.set_orientation_from_yaw(stamped.pose, yaw)
+			yaw = self.tools.get_yaw(stamped.pose)
+			projected = self.tools.set_orientation_from_yaw(stamped.pose, yaw)
 			projected.position.z = 0
-			offset = self.set_orientation_from_yaw(Pose(), yaw)
+			offset = self.tools.set_orientation_from_yaw(Pose(), yaw)
 			offset.position.x = Params().approach_distance
-			approach.pose = self.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
+			approach.pose = self.tools.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
 		else:
-			yaw = self.get_yaw(stamped.pose)
+			yaw = self.tools.get_yaw(stamped.pose)
 			try:
 				yaw = self.get_direction_from_closest_wall(stamped.pose.position)
 			except NotEnoughDataException:
 				pass
-			projected = self.set_orientation_from_yaw(stamped.pose, yaw)
+			projected = self.tools.set_orientation_from_yaw(stamped.pose, yaw)
 			projected.position.z = 0
-			offset = self.set_orientation_from_yaw(Pose(), yaw)
+			offset = self.tools.set_orientation_from_yaw(Pose(), yaw)
 			offset.position.x = Params().approach_distance
-			approach.pose = self.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
+			approach.pose = self.tools.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
 		return approach
 	
 	def get_direction_from_closest_wall(self, point):
 		closest_wall = self.get_closest_wall(point)
-		return self.get_yaw(closest_wall.pose.pose)
+		return self.tools.get_yaw(closest_wall.pose.pose)
 	
-	def get_yaw(self, pose):
-		frame = pm.fromMsg(pose)
-		[roll, pitch, yaw] = frame.M.GetRPY()
-		return yaw
-	
-	def project_pose(self, pose):
-		frame = pm.fromMsg(pose)
-		[roll, pitch, yaw] = frame.M.GetRPY()
-		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
-		projected = pm.toMsg(frame)
-		projected.position.z = 0
-		return projected
-
-	def set_orientation_from_yaw(self, pose, yaw):
-		frame = pm.fromMsg(pose)
-		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
-		return pm.toMsg(frame)
-
 	def sample_scan_pose(self):
 		rospy.loginfo('sampling scan pose')
 		center = self.estimate_center_from_map()
