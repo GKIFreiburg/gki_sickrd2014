@@ -162,7 +162,8 @@ class DeliverCubesStrategy(object):
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
 			stamped.header = banner.header
-			stamped.pose = self.tools.project_pose(banner.pose.pose)
+			#stamped.pose = self.tools.project_pose(banner.pose.pose)
+			stamped.pose = self.tools.set_orientation_from_yaw(banner.pose.pose, self.tools.get_yaw(banner.pose.pose) + math.pi)
 			stamped.pose.position.z = 0.01
 			self.actions.approach(stamped, self.approach_number_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
