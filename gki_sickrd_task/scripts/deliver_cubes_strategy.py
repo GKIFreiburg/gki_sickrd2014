@@ -148,6 +148,12 @@ class DeliverCubesStrategy(object):
 			self.actions.move_to(approach, self.preapproach_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
+	def verify_number(self):
+		number = self.percepts.current_number()
+		banner = self.percepts.get_number_banner(number)
+		if banner.info.support < Params().min_verified_support:
+			self.actions.look_at(stamped, done_cb)
+
 	def approach_number(self):
 		number = self.percepts.current_number()
 		banner = self.percepts.get_number_banner(number)

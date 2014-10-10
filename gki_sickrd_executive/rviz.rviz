@@ -64,7 +64,7 @@ Visualization Manager:
       Enabled: false
       Frame Timeout: 15
       Frames:
-        All Enabled: false
+        All Enabled: true
       Marker Scale: 1
       Name: TF
       Show Arrows: false
@@ -271,21 +271,19 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /worldmodel/visualization_marker_array
       Name: World Model
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /simluation/visualization_marker_array
       Name: Simulation
       Namespaces:
-        axis_optical_link: true
-        banner: true
-        target: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/InteractiveMarkers
@@ -302,6 +300,12 @@ Visualization Manager:
       Marker Topic: /task/visualization_marker_array
       Name: Task
       Namespaces:
+        "": true
+        banner_approach: true
+        description: true
+        loading_approach: true
+        loading_stations: true
+        number_banners: true
         worldmodel/map_center: true
       Queue Size: 100
       Value: true
@@ -338,6 +342,14 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Value: false
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Path
+      Topic: /move_base/NavfnROS/plan
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -361,17 +373,17 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 10.8957
+      Distance: 5.51821
       Focal Point:
-        X: -1.11632
-        Y: -0.827279
-        Z: -1.90674e-06
+        X: 2.98333
+        Y: 1.30762
+        Z: -9.53066e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.824796
+      Pitch: 1.0398
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 2.99989
+      Yaw: 2.70124
     Saved: ~
 Window Geometry:
   Axis Camera:
