@@ -151,13 +151,24 @@ class DeliverCubesStrategy(object):
 	def approach_number(self):
 		number = self.percepts.current_number()
 		banner = self.percepts.get_number_banner(number)
-		#if banner.info.support < Params().min_trusted_support:
+		if banner.info.support < Params().min_trusted_support:
 			# go to some good pose
 			# look at the number for x seconds
-			#self.actions.look_at(stamped, done_cb)
-		#	pass
-		#el
-		if self.at_approach: # FIXME: remove at approach
+			current = self.tools.get_current_pose()
+			closest_wall = None
+			try:
+				closest_wall = self.percepts.get_closest_wall(banner.pose.pose.position)
+			except NotEnoughDataException:
+				pass
+			if self.tools.is_good_verification_pose(current, banner, closest_wall):
+				# look at number
+				self.status_string = 'looking at {}'.format(number)
+				self.actions.look_at(PoseStamped(header=banner.header, pose = banner.pose.pose), done_cb=self.verification_lookat_done_cb)
+			else:
+				stamped = self.tools.sample_verification_pose(banner, self.percepts.estimate_center_from_map(), closest_wall)
+				self.status_string = 'moving to look at {}'.format(number)
+				self.actions.move_to(stamped, done_cb=self.move_done_cb, timeout_cb=self.move_timeout_cb)
+		elif self.at_approach: # FIXME: remove at approach
 			self.status_string = 'approaching number {}...'.format(number)
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
@@ -268,6 +279,14 @@ class DeliverCubesStrategy(object):
 		rospy.loginfo(self.status_string)
 		self.cube_operation_failure = True
 		self.decision_required = True
+		
+	def verification_lookat_done_cb(self, status, result):
+		self.actions.start_verification_timer(self.verification_timeout_cb)
+
+	def verification_timeout_cb(self, event):
+		self.status_string = 'verification: done'
+		rospy.loginfo(self.status_string)
+		self.actions.look_to(done_cb=self.look_done_cb)
 
 	def estop_changed_cb(self, stop):
 		if stop:

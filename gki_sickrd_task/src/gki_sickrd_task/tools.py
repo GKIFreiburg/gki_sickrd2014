@@ -12,6 +12,7 @@ import PyKDL
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, Point, Pose
 from gki_sickrd_task.params import Params
+from gki_utils import angles
 
 class Tools(object):
 	tf_listener = None
@@ -177,34 +178,40 @@ class Tools(object):
 
 	def sample_verification_pose(self, banner, center, closest_wall=None):
 		banner_pose = self.project_pose(banner.pose.pose)
+		distance = self.rnd.uniform(Params().min_verification_distance, Params().max_verification_distance)
 		offset = Pose()
-		offset.position.x = Params.optimal_verification_distance
+		offset.position.x = distance
 		offset.orientation.w = 1
 		pose1 = self.add_poses(banner_pose, offset)
 		map_yaw = math.atan2(banner_pose.position.y-center.pose.position.y, banner_pose.position.x-center.pose.position.x)
 		center_pose = self.set_orientation_from_yaw(center.pose, map_yaw)
 		offset = Pose()
-		offset.position.x = self.xy_point_distance(center.pose.position, banner_pose.position) - Params.optimal_verification_distance
+		offset.position.x = self.xy_point_distance(center.pose.position, banner_pose.position) - distance
 		offset.orientation.w = 1
 		pose2 = self.add_poses(center_pose, offset)
 		verification = PoseStamped(header=center.header)
 		verification.pose.position.x = (pose1.position.x + pose2.position.x) / 2.0
 		verification.pose.position.y = (pose1.position.y + pose2.position.y) / 2.0
 		verification.pose.position.z = (pose1.position.z + pose2.position.z) / 2.0
-		verification.orientation = pose1.orientation
+		verification.pose.orientation = pose1.orientation
+		verification.header.stamp = rospy.Time(0)
 		return verification
 
 	def is_good_verification_pose(self, stamped, banner, closest_wall=None):
-		robot_frame = np.from_msg(stamped.pose)
-		banner_frame = np.from_msg(banner.pose.pose)
+		robot_frame = pm.fromMsg(stamped.pose)
+		banner_frame = pm.fromMsg(banner.pose.pose)
 		if closest_wall:
-			wall_frame = np.from_msg(closest_wall.pose.pose)
+			wall_frame = pm.fromMsg(closest_wall.pose.pose)
 			banner_frame.M = wall_frame.M
 		view_ray = banner_frame.p - robot_frame.p
-		if view_ray.Norm() < Params.min_verification_distance or distance > Params.max_verification_distance:
+		distance = view_ray.Norm()
+		if distance < Params().min_verification_distance or distance > Params().max_verification_distance:
 			return false
 		banner_normal = banner_frame.M * PyKDL.Vector(1, 0, 0)
 		view_ray.Normalize()
-		
+		angle = angles.normalize_angle(math.acos(PyKDL.dot(banner_normal, view_ray)) - math.pi)
+		if abs(angle) > Params().max_verification_angle:
+			return False
+		return True
 		
 		

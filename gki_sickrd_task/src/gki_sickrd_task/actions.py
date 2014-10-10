@@ -57,9 +57,8 @@ class Actions(object):
 		self.retreat_client = SimpleActionClient('/retreat_action', MoveBaseAction)
 		self.camera_ptz_client = SimpleActionClient('/axis/axis_control', CameraAction)
 		self.led_publishers = [rospy.Publisher('/led0', Led), rospy.Publisher('/led1', Led), rospy.Publisher('/led2', Led)]
-		self.approach_timeout_timer = None
-		self.move_timeout_timer = None
-		self.cube_timeout_timer = None
+		self.verification_timer = None
+		self.cube_timer = None
 		self._action = None
 
 		for client in [self.move_base_client, self.approach_client, self.retreat_client, self.camera_ptz_client]:
@@ -74,11 +73,8 @@ class Actions(object):
 		if self._action:
 			if self._action.is_active():
 				self._action.cancel()
-# 		for client in [self.move_base_client, self.approach_client, self.camera_ptz_client]:
-# 			client.cancel_all_goals()
-# 		for timer in [self.approach_timeout_timer, self.move_timeout_timer, self.cube_timeout_timer]:
-# 			if timer:
-# 				timer.shutdown()
+		self.cancel_cube_timer()
+		self.cancel_verification_timer()
 		self.disable_LEDs()
 
 	def random_move(self, done_cb, timeout_cb):
@@ -133,12 +129,6 @@ class Actions(object):
 		self.cancel_all_actions()
 		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().approach_timeout, action_client=self.retreat_client, goal=goal)
 
-	def look_at(self, stamped, done_cb):
-		ps = Tools.tf_listener.transformPose('axis_link', stamped)
-		yaw = math.atan2(ps.pose.position.y, ps.pose.position.x)
-		pitch = math.atan2(ps.pose.position.z, ps.pose.position.x)
-		self.look_to(done_cb, yaw, pitch)
-
 	def camera_sweep(self, done_cb, delta_yaw=None, duration=None, zoom=1):
 		if not delta_yaw:
 			delta_yaw = Params().axis_sweep_angle
@@ -152,6 +142,13 @@ class Actions(object):
 		self.cancel_all_actions()
 		self._action = ActionWrapper(action_client=self.camera_ptz_client, goal=goal, done_cb=done_cb)
 
+	def look_at(self, stamped, done_cb):
+		stamped.header.stamp = rospy.Time(0)
+		ps = Tools.tf_listener.transformPose('axis_link', stamped)
+		yaw = math.atan2(ps.pose.position.y, ps.pose.position.x)
+		pitch = math.atan2(ps.pose.position.z, ps.pose.position.x)
+		self.look_to(done_cb, yaw, pitch)
+
 	def look_to(self, done_cb, yaw=None, pitch=None, zoom=1):
 		if not yaw:
 			yaw = Params().axis_pan
@@ -164,14 +161,23 @@ class Actions(object):
 		self.cancel_all_actions()
 		self._action = ActionWrapper(action_client=self.camera_ptz_client, goal=goal, done_cb=done_cb)
 
-	def start_cube_operation_timer(self, timeout_cb):
-		self.cube_timeout_timer = rospy.Timer(rospy.Duration(Params().cube_timeout), timeout_cb, oneshot=True)
+	def start_verification_timer(self, timeout_cb):
+		self.verification_timer = rospy.Timer(rospy.Duration(Params().verification_duration), timeout_cb, oneshot=True)
 
-	def cancel_cube_timeout(self):
-		if not self.cube_timeout_timer:
+	def cancel_verification_timer(self):
+		if not self.cube_timer:
 			return 
-		if self.cube_timeout_timer.is_alive():
-			self.cube_timeout_timer.shutdown()
+		if self.cube_timer.is_alive():
+			self.cube_timer.shutdown()
+
+	def start_cube_operation_timer(self, timeout_cb):
+		self.cube_timer = rospy.Timer(rospy.Duration(Params().cube_timeout), timeout_cb, oneshot=True)
+
+	def cancel_cube_timer(self):
+		if not self.cube_timer:
+			return 
+		if self.cube_timer.is_alive():
+			self.cube_timer.shutdown()
 
 	def enable_LEDs(self):
 		msg = Led()
