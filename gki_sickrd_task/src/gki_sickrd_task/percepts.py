@@ -160,7 +160,7 @@ class Percepts(object):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		model = self.model
-		lines = [object for object in self.model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < Params().max_loading_station_distance_from_center]
+		lines = [object for object in model.objects if object.info.class_id == 'isolated_lines' and self.tools.xy_point_distance(object.pose.pose.position, center.pose.position) < Params().max_loading_station_distance_from_center]
 		if len(lines) == 0:
 			raise NotEnoughDataException('no known loading stations.')
 		return lines
@@ -169,7 +169,7 @@ class Percepts(object):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		model = self.model
-		lines = [object for object in self.model.objects if object.info.class_id == 'connected_lines' and self.tools.xy_point_distance(object.pose.pose.position, point) < Params().approach_distance]
+		lines = [object for object in model.objects if object.info.class_id == 'connected_lines' and self.tools.xy_point_distance(object.pose.pose.position, point) < Params().approach_distance]
 		if len(lines) == 0:
 			raise NotEnoughDataException('no known walls.')
 		lines.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, point))
@@ -184,7 +184,7 @@ class Percepts(object):
 			raise NotEnoughDataException('no worldmodel message received.')
 		number_class = 'number_banner_{}'.format(number)
 		model = self.model
-		banners = [object for object in self.model.objects if object.info.class_id == number_class]
+		banners = [object for object in model.objects if object.info.class_id == number_class]
 		if len(banners) == 0:
 			raise NotEnoughDataException('number not found: {}'.format(number))
 		banners.sort(key=lambda object: -object.info.support)
