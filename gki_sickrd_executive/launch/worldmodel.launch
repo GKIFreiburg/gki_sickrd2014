@@ -10,5 +10,6 @@
     </node>
 
     <include file="$(find line_feature_detection)/launch/line_feature_detection.launch" />
+    <include file="$(find gki_sickrd_task)/launch/worldmodel_ageing.launch" />
 </launch>
 
