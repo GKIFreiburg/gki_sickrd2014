@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="gki_sickrd_task" type="worldmodel_ageing.py" name="worldmodel_ageing" >
+    <rosparam command="load" file="$(find gki_sickrd_task)/config/worldmodel_ageing.yaml" />
+  </node>
+</launch>

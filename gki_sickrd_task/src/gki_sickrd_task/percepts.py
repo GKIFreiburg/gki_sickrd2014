@@ -24,21 +24,6 @@ class NotEnoughDataException(Exception):
 	def __init__(self, message):
 		self.message = message
 
-class WorldmodelAgeing(object):
-	def __init__(self):
-		self.worldmodel_ageing_publisher = rospy.Publisher('/worldmodel/object_ageing', Float32)
-		self.stop = False
-		self.last_ageing = rospy.Time.now()
-		rospy.Timer(rospy.Duration(1.0), self.ageing_cb)
-		EstopGuard.add_callback(self.estop_changed_cb)
-
-	def estop_changed_cb(self, stop):
-		self.stop = stop
-
-	def ageing_cb(self, event):
-		if not self.stop:
-			self.worldmodel_ageing_publisher.publish(Float32(data=Params().worldmodel_ageing_rate))
-
 class Percepts(object):
 	def __init__(self):
 		self.tools = Tools()
@@ -221,15 +206,29 @@ class Percepts(object):
 			approach.pose.position.z = 0
 		else:
 			# project inward
-			map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
-			approach.pose.position.x -= Params().approach_distance * math.cos(map_yaw)
-			approach.pose.position.y -= Params().approach_distance * math.sin(map_yaw)
+# 			map_yaw = math.atan2(approach.pose.position.y-center.pose.position.y, approach.pose.position.x-center.pose.position.x)
+# 			approach.pose.position.x -= Params().approach_distance * math.cos(map_yaw)
+# 			approach.pose.position.y -= Params().approach_distance * math.sin(map_yaw)
+# 			approach.pose.position.z = 0
+# 			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw)
+# 			approach.pose.orientation.x = rotation[0]
+# 			approach.pose.orientation.y = rotation[1]
+# 			approach.pose.orientation.z = rotation[2]
+# 			approach.pose.orientation.w = rotation[3]
+			# cleanup pose
+			quaterion = [approach.pose.orientation.x, approach.pose.orientation.y, approach.pose.orientation.z, approach.pose.orientation.w]
+			matrix = tf.transformations.quaternion_matrix(quaternion)
+			tf.transformations.rotation_from_matrix(matrix)
+			roll, pitch, yaw = tf.transformations.euler_from_matrix(matrix)
+			rotation = tf.transformations.quaternion_from_euler(0, 0, yaw)
+			pose = Pose()
+			pose.position.x = Params().approach_distance
+			pose.orientation.x = rotation[0]
+			pose.orientation.y = rotation[1]
+			pose.orientation.z = rotation[2]
+			pose.orientation.w = rotation[3]
+			approach.pose = self.tools.add_poses(stamped.pose, pose)
 			approach.pose.position.z = 0
-			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw)
-			approach.pose.orientation.x = rotation[0]
-			approach.pose.orientation.y = rotation[1]
-			approach.pose.orientation.z = rotation[2]
-			approach.pose.orientation.w = rotation[3]
 		return approach
 
 	def sample_scan_pose(self):
