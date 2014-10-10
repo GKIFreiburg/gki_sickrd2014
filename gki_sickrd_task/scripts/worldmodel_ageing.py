@@ -7,6 +7,7 @@ import threading
 
 from gki_sickrd_task.estop_guard import EstopGuard
 from gki_sickrd_task.params import Params
+from std_msgs.msg import Float32
 
 class WorldmodelAgeing(object):
 	def __init__(self):

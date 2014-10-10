@@ -137,8 +137,8 @@ class DeliverCubesStrategy(object):
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
 			stamped.header = loading_stations[0].header
-			stamped.pose = copy.deepcopy(loading_stations[0].pose.pose)
-			stamped.pose.position.z = -0.1
+			stamped.pose = self.percepts.project_pose(loading_stations[0].pose.pose)
+			stamped.pose.position.z = -0.01
 			self.actions.approach(stamped, self.approach_loading_station_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
 		else:
@@ -162,8 +162,8 @@ class DeliverCubesStrategy(object):
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
 			stamped.header = banner.header
-			stamped.pose = banner.pose.pose
-			stamped.pose.position.z = 0.1
+			stamped.pose = self.percepts.project_pose(banner.pose.pose)
+			stamped.pose.position.z = 0.01
 			self.actions.approach(stamped, self.approach_number_done_cb, self.approach_timeout_cb)
 			self.at_approach = False
 		else:
