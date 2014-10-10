@@ -179,14 +179,56 @@ class Percepts(object):
 		banners = self.get_number_banner_data(number)
 		return banners[0]
 
+    def filter_conflicting_banners(self, number_objects):
+        """ Adjust the support for all number objects that are at the same pose.
+
+            If there is a dominating one, reduce the support for all others to be non-trustworthy.
+            If there are multiple dominating ones, reduce all to avoid confusions."""
+        # FIXME The second part might destroy some high support if the vision detects two
+        # numbers consistently. Shouldn't happen?!?
+
+        # For now we do this locally without clustering.
+        # If we reduce the support of one, it can't dominate its neighbors any more,
+        # so the order matters unless clustered beforehand.
+        def get_neighbors(number_obj, objects):
+            """ return all objects around number_obj (including that)
+                that are in number_conflict_distance and
+                also have at least min_trusted_support"""
+            return [obj for obj in objects if
+                    self.tools.xy_point_distance(
+                        number_obj.pose.pose.position, obj.pose.pose.position) <= Params().number_conflict_distance
+                    and obj.info.support >= Params().min_trusted_support]
+        for no in number_objects:
+            if no.info.support < Params().min_trusted_support:  # this one is bad anyways
+                continue
+            neigh = get_neighbors(no, number_objects)
+            if len(neigh) <= 1: # only we are in here
+                continue
+            # OK, we are trusted AND we have trusted neighbors
+            # That is bad.
+            neigh.sort(key = lambda obj: -obj.info.support)
+            # If there is a single dominator, bring all others down
+            if(neigh[0].info.support >= Params().domination_factor * neigh[1].info.support):
+                for nn in neigh[1:]:
+		            rospy.loginfo("Reducing support below trusted for dominated by %s pose for %s, at %f %f. Had: %f support." % (neigh[0].info.class_id, nn.info.class_id, nn.pose.pose.position.x, nn.pose.pose.position.y, nn.info.support))
+                    nn.info.support = Params().min_trusted_support - 1
+            else:
+                # If the best one isn't a single dominator, bring all down - this position is confusing
+                for nn in neigh:
+		            rospy.loginfo("Reducing support below trusted for conflicting poses for %s, at %f %f. Had: %f support." % (nn.info.class_id, nn.pose.pose.position.x, nn.pose.pose.position.y, nn.info.support))
+                    nn.info.support = Params().min_trusted_support - 1
+
 	def get_number_banner_data(self, number):
 		if not self.model:
 			raise NotEnoughDataException('no worldmodel message received.')
 		number_class = 'number_banner_{}'.format(number)
 		model = self.model
-		banners = [object for object in model.objects if object.info.class_id == number_class]
+        banners = [object for object in model.objects
+                if object.info.class_id == number_class and object.info.support >= Params().min_valid_support]
 		if len(banners) == 0:
 			raise NotEnoughDataException('number not found: {}'.format(number))
+        self.filter_conflicting_banners([object for object in model.objects
+            if object.info.class_id.startswith("number_banner_")])
 		banners.sort(key=lambda object: -object.info.support)
 		return banners
 
