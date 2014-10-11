@@ -11,6 +11,7 @@ max_loading_station_distance_from_center: 1.5
 min_travel_distance_for_rescan: 1.0
 cube_timeout: 15.0
 move_base_timeout: 30.0
+no_move_timeout: 30.0
 approach_timeout: 20.0
 worldmodel_ageing_rate: 0.1
 min_valid_support: 5

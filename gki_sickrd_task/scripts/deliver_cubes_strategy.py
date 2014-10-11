@@ -26,6 +26,8 @@ class DeliverCubesStrategy(object):
 		self.loading_cube = False
 		self.unloading_cube = False
 		self.cube_operation_failure = False
+		self.number_approach_failure = False
+		self.no_move_failure = False
 		self.cube_status_string = ''
 		self.status_string = ''
 		EstopGuard.add_callback(self.estop_changed_cb)
@@ -67,6 +69,20 @@ class DeliverCubesStrategy(object):
 					self.explore()
 					return
 
+			# number operation failure recovery
+			if self.number_approach_failure:
+				self.number_approach_failure = False
+				self.previous_scan_pose = self.tools.get_current_pose()
+				self.explore()
+				return
+
+			# no move failure recovery
+			if self.no_move_failure:
+				self.no_move_failure = False
+				self.previous_scan_pose = self.tools.get_current_pose()
+				self.explore()
+				return
+
 			# cube operations
 			if self.at_ring:
 				if self.loading_cube:
@@ -80,6 +96,7 @@ class DeliverCubesStrategy(object):
 					self.retreat()
 					return
 
+			self.actions.start_no_move_timer(self.no_move_timeout_cb)
 			# drive and camera operations
 			if not self.percepts.cube_loaded():
 				try:
@@ -160,9 +177,20 @@ class DeliverCubesStrategy(object):
 				self.status_string = 'looking at {}'.format(number)
 				self.actions.look_at(PoseStamped(header=banner.header, pose = banner.pose.pose), done_cb=self.verification_lookat_done_cb)
 			else:
-				stamped = self.tools.sample_verification_pose(banner, self.percepts.estimate_center_from_map())
-				self.status_string = 'moving to look at {}'.format(number)
-				self.actions.move_to(stamped, done_cb=self.move_done_cb, timeout_cb=self.move_timeout_cb)
+				for i in range(20):
+					stamped = self.tools.sample_verification_pose(banner, self.percepts.estimate_center_from_map())
+					sampled_poses = []
+					if self.percepts.check_path(start, goal):
+						self.status_string = 'moving to look at {}'.format(number)
+						rospy.loginfo(self.status_string)
+						self.actions.move_to(stamped, done_cb=self.move_done_cb, timeout_cb=self.move_timeout_cb)
+						self.decision_required = False
+						return
+					sampled_poses.append(stamped)
+				self.tools.visualize_poses(sampled_poses, ns='failed_verification_poses')
+				self.status_string = 'failure at {}'.format(number)
+				self.number_approach_failure = True
+				
 		elif self.tools.is_good_approach_pose(current, banner):
 			self.status_string = 'approaching number {}...'.format(number)
 			rospy.loginfo(self.status_string)
@@ -259,7 +287,7 @@ class DeliverCubesStrategy(object):
 	def approach_timeout_cb(self, event):
 		self.status_string = 'approach: timeout'
 		rospy.loginfo(self.status_string)
-		self.at_ring
+		self.at_ring = True
 		self.decision_required = True
 
 	def retreat_timeout_cb(self, event):
@@ -282,6 +310,12 @@ class DeliverCubesStrategy(object):
 		rospy.loginfo(self.status_string)
 		self.decision_required = True
 
+	def no_move_timeout_cb(self, event):
+		self.status_string = 'no_move: timeout'
+		rospy.loginfo(self.status_string)
+		self.no_move_failure = True
+		self.decision_required = True
+
 	def estop_changed_cb(self, stop):
 		if stop:
 			self.status_string = 'estop triggered.'
@@ -289,6 +323,7 @@ class DeliverCubesStrategy(object):
 			self.decision_required = False
 			rospy.Rate(4).sleep() # let current decisions finish...
 			self.actions.cancel_all_actions() # ... and then cancel them.
+			self.actions.cancel_no_move_timer()
 		else:
 			self.status_string = 'estop released.'
 			rospy.loginfo(self.status_string)

@@ -290,7 +290,7 @@ class Percepts(object):
 		distance = 0.0
 		scan_distance = Params().optimal_exploration_distance
 		reachable = False
-		msg = MarkerArray()
+		sampled_poses = []
 		for i in range(25):
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
 			center_distance = self.tools.rnd.uniform(scan_distance*0.9, scan_distance*1.11)
@@ -306,11 +306,8 @@ class Percepts(object):
 			reachable = self.check_path(current, scan)
 			if distance > Params().min_travel_distance_for_rescan and reachable:
 				return scan
-			msg.markers.append(self.tools.create_pose_marker(scan, ns='sampled', id=len(msg.markers), z_offset=0.2))
-			if len(msg.markers) > 20:
-				self.tools.visualization_publisher.publish(msg)
-				msg = MarkerArray()
-			print 'distance {}, reachable {}, header {}'.format(distance, reachable, scan.header)
+			sampled_poses.append(scan)
+		self.tools.visualize_poses(sampled_poses, ns='failed scan poses')
 		raise NotEnoughDataException('could not sample exploration pose.')
 
 	def enable_barcode_detection(self):

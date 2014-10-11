@@ -11,6 +11,7 @@ import tf_conversions.posemath as pm
 import PyKDL
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, Point, Pose
+from std_msgs.msg import ColorRGBA
 from gki_sickrd_task.params import Params
 from gki_utils import angles
 
@@ -30,26 +31,32 @@ class Tools(object):
 			Tools.visualization_publisher = rospy.Publisher('/task/visualization_marker_array', MarkerArray, latch=True)
 		self.visualization_publisher = Tools.visualization_publisher
 		
-	def create_pose_marker(self, stamped, ns='', id=0, z_offset=0.0):
-		marker = Marker()
+	def visualize_poses(self, pose_stamped_list, ns=''):
+		msg = MarkerArray()
+		for id, stamped in enumerate(pose_stamped_list):
+			msg.markers.append(self.create_pose_marker(stamped, ns, id))
+		for id in range(len(msg.markers), 30):
+			msg.markers.append(self.create_delete_marker(ns, id))
+		self.visualization_publisher.publish(msg)
+		
+	def create_pose_marker(self, stamped, ns='', id=0, z_offset=0.0, color=ColorRGBA(r=0.2,g=0.2,b=0.2,a=0.8)):
+		marker = Marker(header = stamped.header)
+		marker.header.stamp = rospy.Time.now()
 		marker.type = Marker.ARROW
 		marker.action = Marker.ADD
-		marker.color.a = 0.8
-		marker.color.r = 0.2
-		marker.color.g = 0.2
-		marker.color.b = 0.2
+		marker.color = color
 		marker.scale.x = 0.2
 		marker.scale.y = 0.1
 		marker.scale.z = 0.1
 		marker.pose = copy.deepcopy(stamped.pose)
 		marker.pose.position.z += z_offset
-		marker.header = stamped.header
 		marker.ns = ns
 		marker.id = id
 		return marker
 	
 	def create_delete_marker(self, ns, id):
 		marker = Marker()
+		marker.header.stamp = rospy.Time.now()
 		marker.header.frame_id = 'map'
 		marker.pose.orientation.w = 1
 		marker.action = Marker.DELETE
@@ -59,6 +66,7 @@ class Tools(object):
 	def create_status_marker(self, text):
 		marker = Marker()
 		marker.header.frame_id = 'base_footprint'
+		marker.header.stamp = rospy.Time.now()
 		marker.pose.position.z += 1
 		marker.pose.orientation.w = 1
 		marker.type = Marker.TEXT_VIEW_FACING
@@ -76,6 +84,7 @@ class Tools(object):
 		if pose_percept:
 			station = Marker()
 			station.header.frame_id = pose_percept.header.frame_id
+			station.header.stamp = rospy.Time.now()
 			station.pose = copy.deepcopy(pose_percept.pose.pose)
 			station.ns = 'loading_stations'
 			station.id = id
@@ -102,6 +111,7 @@ class Tools(object):
 		if pose_percept:
 			banner = Marker()
 			banner.header.frame_id = pose_percept.header.frame_id
+			banner.header.stamp = rospy.Time.now()
 			banner.pose = copy.deepcopy(pose_percept.pose.pose)
 			banner.ns = 'number_banners'
 			banner.id = id
@@ -202,21 +212,14 @@ class Tools(object):
 	def sample_verification_pose(self, banner, center):
 		banner_pose = self.project_pose(banner.pose.pose)
 		distance = self.rnd.uniform(Params().min_verification_distance, Params().max_verification_distance)
+		angle = self.rnd.uniform(-Params().max_verification_angle, Params().max_verification_angle)
 		offset = Pose()
-		offset.position.x = distance
+		offset.position.x = distance * math.cos(angle)
+		offset.position.y = distance * math.sin(angle)
 		offset.orientation.w = 1
-		pose1 = self.add_poses(banner_pose, offset)
-		map_yaw = math.atan2(banner_pose.position.y-center.pose.position.y, banner_pose.position.x-center.pose.position.x)
-		center_pose = self.set_orientation_from_yaw(center.pose, map_yaw)
-		offset = Pose()
-		offset.position.x = self.xy_point_distance(center.pose.position, banner_pose.position) - distance
-		offset.orientation.w = 1
-		pose2 = self.add_poses(center_pose, offset)
+		offset = self.set_orientation_from_yaw(offset, -angle)
 		verification = PoseStamped(header=center.header)
-		verification.pose.position.x = (pose1.position.x + pose2.position.x) / 2.0
-		verification.pose.position.y = (pose1.position.y + pose2.position.y) / 2.0
-		verification.pose.position.z = (pose1.position.z + pose2.position.z) / 2.0
-		verification.pose.orientation = pose1.orientation
+		verification.pose = self.add_poses(banner_pose, offset)
 		return verification
 
 	def is_good_verification_pose(self, stamped, banner):
