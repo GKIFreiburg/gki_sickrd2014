@@ -173,8 +173,11 @@ class Percepts(object):
 						good.append(loading_station)
 		else:
 			good = all
-		good.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, current.pose.position))
-		return good[0]
+		if Params().random_loading_stations:
+			return self.tools.rnd.choice(good)
+		else:
+			good.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, current.pose.position))
+			return good[0]
 
 	def get_best_average_approach_from_two_line_markers(self, current):
 		center = self.estimate_center_from_map()
