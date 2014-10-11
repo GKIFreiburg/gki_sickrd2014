@@ -1,9 +1,11 @@
 optimal_exploration_distance: 1.5
 min_verification_distance: 2.0
 max_verification_distance: 5.0
-max_verification_angle: 0.5
+max_verification_angle: 0.5235
 verification_duration: 5.0
 approach_distance: 1.0
+approach_distance_tolerance: 1.5
+max_approach_angle: 0.5235
 ring_distance: 0.3
 max_loading_station_distance_from_center: 1.5
 min_travel_distance_for_rescan: 1.0

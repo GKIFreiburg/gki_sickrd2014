@@ -132,15 +132,15 @@ class DeliverCubesStrategy(object):
 		loading_stations = self.percepts.get_loading_stations()
 		current = self.tools.get_current_pose()
 		loading_stations.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, current.pose.position))
-		if self.at_approach:
+		loading_station = loading_stations[0]
+		if self.tools.is_good_approach_pose(current, loading_station):
 			self.status_string = 'approaching loading station...'
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
-			stamped.header = loading_stations[0].header
-			stamped.pose = self.tools.project_pose(loading_stations[0].pose.pose)
+			stamped.header = loading_station.header
+			stamped.pose = self.tools.project_pose(loading_station.pose.pose)
 			stamped.pose.position.z = -0.01
 			self.actions.approach(stamped, self.approach_loading_station_done_cb, self.approach_timeout_cb)
-			self.at_approach = False
 		else:
 			self.status_string = 'moving to loading station...'
 			rospy.loginfo(self.status_string)
@@ -151,24 +151,19 @@ class DeliverCubesStrategy(object):
 	def approach_number(self):
 		number = self.percepts.current_number()
 		banner = self.percepts.get_number_banner(number)
+		current = self.tools.get_current_pose()
 		if banner.info.support < Params().min_trusted_support:
 			# go to some good pose
 			# look at the number for x seconds
-			current = self.tools.get_current_pose()
-			closest_wall = None
-			try:
-				closest_wall = self.percepts.get_closest_wall(banner.pose.pose.position)
-			except NotEnoughDataException:
-				pass
-			if self.tools.is_good_verification_pose(current, banner, closest_wall):
+			if self.tools.is_good_verification_pose(current, banner):
 				# look at number
 				self.status_string = 'looking at {}'.format(number)
 				self.actions.look_at(PoseStamped(header=banner.header, pose = banner.pose.pose), done_cb=self.verification_lookat_done_cb)
 			else:
-				stamped = self.tools.sample_verification_pose(banner, self.percepts.estimate_center_from_map(), closest_wall)
+				stamped = self.tools.sample_verification_pose(banner, self.percepts.estimate_center_from_map())
 				self.status_string = 'moving to look at {}'.format(number)
 				self.actions.move_to(stamped, done_cb=self.move_done_cb, timeout_cb=self.move_timeout_cb)
-		elif self.at_approach: # FIXME: remove at approach
+		elif self.tools.is_good_approach_pose(current, banner):
 			self.status_string = 'approaching number {}...'.format(number)
 			rospy.loginfo(self.status_string)
 			stamped = PoseStamped()
@@ -177,7 +172,6 @@ class DeliverCubesStrategy(object):
 			stamped.pose = self.tools.set_orientation_from_yaw(banner.pose.pose, self.tools.get_yaw(banner.pose.pose) + math.pi)
 			stamped.pose.position.z = 0.01
 			self.actions.approach(stamped, self.approach_number_done_cb, self.approach_timeout_cb)
-			self.at_approach = False
 		else:
 			self.status_string = 'moving to number {}...'.format(number)
 			rospy.loginfo(self.status_string)
@@ -250,7 +244,6 @@ class DeliverCubesStrategy(object):
 		if status == GoalStatus.SUCCEEDED:
 			self.status_string = 'pre-approach: done'.format(status, result)
 			rospy.loginfo(self.status_string)
-			self.at_approach = True
 		self.decision_required = True
 
 	def move_done_cb(self, status, result):

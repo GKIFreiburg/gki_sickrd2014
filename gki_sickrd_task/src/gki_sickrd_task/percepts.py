@@ -174,9 +174,24 @@ class Percepts(object):
 			raise NotEnoughDataException('no known walls.')
 		lines.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, point))
 		return lines[0]
+	
+	def _fix_banner_orientation(self, banner):
+		try:
+			wall = self.get_closest_wall(banner.pose.pose.position)
+			yaw = self.tools.get_yaw(wall.pose.pose)
+			banner.pose.pose = self.tools.set_orientation_from_yaw(banner.pose.pose, yaw)
+			return
+		except NotEnoughDataException:
+			pass
+		center = self.estimate_center_from_map()
+		angle = self.tools.get_facing_angle(center.pose, banner.pose.pose)
+		if abs(angle) < math.pi/2.0:
+			yaw = self.tools.get_yaw(banner.pose.pose)
+			banner.pose.pose = self.tools.set_orientation_from_yaw(banner.pose.pose, yaw+math.pi)
 
 	def get_number_banner(self, number):
 		banners = self.get_number_banner_data(number)
+		self._fix_banner_orientation(banners[0])
 		return banners[0]
 
 	def filter_conflicting_banners(self, number_objects):
@@ -253,7 +268,6 @@ class Percepts(object):
 			approach.pose = self.tools.set_orientation_from_yaw(self.tools.add_poses(projected, offset), yaw+math.pi)
 		else:
 			yaw = self.tools.get_yaw(stamped.pose)
-			yaw += math.pi
 			try:
 				yaw = self.get_direction_from_closest_wall(stamped.pose.position)
 			except NotEnoughDataException:

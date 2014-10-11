@@ -165,6 +165,27 @@ class Tools(object):
 		[roll, pitch, yaw] = frame.M.GetRPY()
 		return yaw
 	
+	def get_viewing_angle(self, origin, target):
+		origin_frame = pm.fromMsg(origin)
+		target_frame = pm.fromMsg(target)
+		return self._get_viewing_angle(origin_frame, target_frame)
+		
+	def _get_viewing_angle(self, origin_frame, target_frame):
+		origin_normal = origin_frame.M * PyKDL.Vector(1, 0, 0)
+		target_normal = target_frame.M * PyKDL.Vector(1, 0, 0)
+		return angles.normalize_angle(math.acos(PyKDL.dot(target_normal, origin_normal)) - math.pi)
+	
+	def get_facing_angle(self, origin, target):
+		origin_frame = pm.fromMsg(origin)
+		target_frame = pm.fromMsg(target)
+		return self._get_facing_angle(origin_frame, target_frame)
+
+	def _get_facing_angle(self, origin_frame, target_frame):
+		ray = origin_frame.p - target_frame.p
+		ray.Normalize()
+		target_normal = target_frame.M * PyKDL.Vector(1, 0, 0)
+		return angles.normalize_angle(math.acos(PyKDL.dot(target_normal, ray)) - math.pi)
+	
 	def project_pose(self, pose):
 		frame = pm.fromMsg(pose)
 		[roll, pitch, yaw] = frame.M.GetRPY()
@@ -178,7 +199,7 @@ class Tools(object):
 		frame.M = PyKDL.Rotation.RPY(0, 0, yaw)
 		return pm.toMsg(frame)
 
-	def sample_verification_pose(self, banner, center, closest_wall=None):
+	def sample_verification_pose(self, banner, center):
 		banner_pose = self.project_pose(banner.pose.pose)
 		distance = self.rnd.uniform(Params().min_verification_distance, Params().max_verification_distance)
 		offset = Pose()
@@ -196,24 +217,30 @@ class Tools(object):
 		verification.pose.position.y = (pose1.position.y + pose2.position.y) / 2.0
 		verification.pose.position.z = (pose1.position.z + pose2.position.z) / 2.0
 		verification.pose.orientation = pose1.orientation
-		verification.header.stamp = rospy.Time(0)
 		return verification
 
-	def is_good_verification_pose(self, stamped, banner, closest_wall=None):
+	def is_good_verification_pose(self, stamped, banner):
 		robot_frame = pm.fromMsg(stamped.pose)
 		banner_frame = pm.fromMsg(banner.pose.pose)
-		if closest_wall:
-			wall_frame = pm.fromMsg(closest_wall.pose.pose)
-			banner_frame.M = wall_frame.M
 		view_ray = banner_frame.p - robot_frame.p
 		distance = view_ray.Norm()
 		if distance < Params().min_verification_distance or distance > Params().max_verification_distance:
-			return false
-		banner_normal = banner_frame.M * PyKDL.Vector(1, 0, 0)
-		view_ray.Normalize()
-		angle = angles.normalize_angle(math.acos(PyKDL.dot(banner_normal, view_ray)) - math.pi)
+			return False
+		angle = self._get_facing_angle(robot_frame, banner_frame)
 		if abs(angle) > Params().max_verification_angle:
 			return False
 		return True
 		
-		
+	def is_good_approach_pose(self, stamped, banner):
+		robot_frame = pm.fromMsg(stamped.pose)
+		banner_frame = pm.fromMsg(banner.pose.pose)
+		view_ray = banner_frame.p - robot_frame.p
+		distance = view_ray.Norm()
+		if distance > Params().approach_distance_tolerance:
+			rospy.loginfo('bad approach pose: distance {}'.format(distance))
+			return False
+		angle = self._get_viewing_angle(robot_frame, banner_frame)
+		if abs(angle) > Params().max_approach_angle:
+			rospy.loginfo('bad approach pose: angle {}'.format(math.degrees(angle)))
+			return False
+		return True
