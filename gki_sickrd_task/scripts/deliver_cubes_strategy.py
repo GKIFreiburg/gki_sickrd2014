@@ -273,14 +273,14 @@ class DeliverCubesStrategy(object):
 		rospy.loginfo(self.status_string)
 		self.cube_operation_failure = True
 		self.decision_required = True
-		
+
 	def verification_lookat_done_cb(self, status, result):
 		self.actions.start_verification_timer(self.verification_timeout_cb)
 
 	def verification_timeout_cb(self, event):
 		self.status_string = 'verification: done'
 		rospy.loginfo(self.status_string)
-		self.actions.look_to(done_cb=self.look_done_cb)
+		self.decision_required = True
 
 	def estop_changed_cb(self, stop):
 		if stop:
