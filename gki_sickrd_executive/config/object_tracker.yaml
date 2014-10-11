@@ -46,4 +46,5 @@ negative_update:
     min_distance: 2.0
     max_distance: 7.5
     negative_support: 0.5
+    not_seen_duration: 2.0
 
