@@ -293,8 +293,8 @@ class Percepts(object):
 		sampled_poses = []
 		for i in range(25):
 			map_yaw = self.tools.rnd.uniform(-math.pi, math.pi)
-			center_distance = self.tools.rnd.uniform(scan_distance*0.9, scan_distance*1.11)
-			scan = copy.deepcopy(center)
+			center_distance = self.tools.rnd.uniform(Params().min_travel_distance_for_rescan, scan_distance)
+			scan = copy.deepcopy(current)
 			scan.pose.position.x += center_distance * math.cos(map_yaw)
 			scan.pose.position.y += center_distance * math.sin(map_yaw)
 			rotation = tf.transformations.quaternion_from_euler(0, 0, map_yaw + self.tools.rnd.uniform(-math.pi, math.pi)/2.0)
@@ -303,8 +303,7 @@ class Percepts(object):
 			scan.pose.orientation.z = rotation[2]
 			scan.pose.orientation.w = rotation[3]
 			distance = self.tools.xy_distance(current, scan)
-			reachable = self.check_path(current, scan)
-			if distance > Params().min_travel_distance_for_rescan and reachable:
+			if self.check_path(current, scan):
 				return scan
 			sampled_poses.append(scan)
 		self.tools.visualize_poses(sampled_poses, ns='failed scan poses')
