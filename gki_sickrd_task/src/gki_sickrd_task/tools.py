@@ -196,6 +196,9 @@ class Tools(object):
 		target_normal = target_frame.M * PyKDL.Vector(1, 0, 0)
 		return angles.normalize_angle(math.acos(PyKDL.dot(target_normal, ray)) - math.pi)
 	
+	def get_map_yaw(self, center, target):
+		return math.atan2(target.position.y-center.position.y, target.position.x-center.position.x)
+	
 	def project_pose(self, pose):
 		frame = pm.fromMsg(pose)
 		[roll, pitch, yaw] = frame.M.GetRPY()
@@ -249,3 +252,18 @@ class Tools(object):
 			rospy.loginfo('bad approach pose: angle {}'.format(math.degrees(angle)))
 			return False
 		return True
+	
+	def sample_approach_from_averaged(self, line1, line2):
+		line1_frame = pm.fromMsg(line1)
+		line2_frame = pm.fromMsg(line2)
+		averaged_frame = PyKDL.Frame()
+		averaged_frame.p = (line1_frame.p + line2_frame.p) * 0.5
+		[roll, pitch, yaw1] = line1_frame.M.GetRPY()
+		[roll, pitch, yaw2] = line2_frame.M.GetRPY()
+		averaged_frame.M = PyKDL.Rotation.RPY(0, 0, (yaw1+yaw2)/2.0)
+		approach_frame = PyKDL.Frame()
+		approach_frame.p = averaged_frame.p + averaged_frame.M * PyKDL.Vector(Params().approach_distance * 1.5, 0, 0)
+		[roll, pitch, yaw] = averaged_frame.M.GetRPY()
+		approach_frame.M = PyKDL.Rotation.RPY(0, 0, yaw+math.pi)
+		return pm.toMsg(approach_frame)
+	

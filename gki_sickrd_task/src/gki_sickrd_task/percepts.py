@@ -176,6 +176,30 @@ class Percepts(object):
 		good.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, current.pose.position))
 		return good[0]
 
+	def get_best_average_approach_from_two_line_markers(self, current):
+		center = self.estimate_center_from_map()
+		all = self.get_loading_stations()
+		all.sort(key=lambda object: math.pi + self.tools.get_map_yaw(center.pose, object.pose.pose))
+		inbetween_approach_poses = []
+		approaches = []
+		for i in range(len(all)):
+			first = all[i]
+			second = all[(i+1)%len(all)]
+			if self.tools.xy_point_distance(first.pose.pose.position, second.pose.pose.position) < Params().max_merge_distance:
+				stamped = PoseStamped(header=center.header)
+				stamped.pose = self.tools.sample_approach_from_averaged(first.pose.pose, second.pose.pose)
+				approaches.append(stamped)
+		if Params().smart_loading_station_selection:
+			good = []
+			for approach_pose in approaches:
+				valid = self.check_path(current, approach_pose)
+				if valid:
+					good.append(approach_pose)
+		else:
+			good = approaches
+		good.sort(key=lambda stamped: self.tools.xy_point_distance(stamped.pose.position, current.pose.position))
+		return good[0]
+
 	def get_loading_stations(self):
 		center = self.estimate_center_from_map()
 		if not self.model:

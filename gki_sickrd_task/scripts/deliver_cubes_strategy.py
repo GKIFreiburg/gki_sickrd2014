@@ -13,6 +13,7 @@ from gki_sickrd_task.percepts import Percepts, NotEnoughDataException
 from gki_sickrd_task.tools import Tools
 from gki_sickrd_task.estop_guard import EstopGuard
 from actionlib_msgs.msg import GoalStatus
+from geometry_msgs.msg import Pose
 
 class DeliverCubesStrategy(object):
 	def __init__(self):
@@ -104,7 +105,10 @@ class DeliverCubesStrategy(object):
 			if not self.percepts.cube_loaded():
 				try:
 					# approach loading station
-					self.approach_loading_station()
+					if Params().hack_octa_loading_station:
+						self.approach_average_of_two_loading_station()
+					else:
+						self.approach_loading_station()
 					return
 				except NotEnoughDataException as e:
 					# not enough data to find loading station
@@ -165,6 +169,25 @@ class DeliverCubesStrategy(object):
 			self.status_string = 'moving to loading station...'
 			rospy.loginfo(self.status_string)
 			approach = self.percepts.sample_approach_pose(loading_station.pose.pose, loading_station.header.frame_id)
+			self.actions.move_to(approach, self.preapproach_done_cb, self.move_timeout_cb)
+		self.decision_required = False
+
+	def approach_average_of_two_loading_station(self):
+		current = self.tools.get_current_pose()
+		approach = self.percepts.get_best_average_approach_from_two_line_markers(current)
+		if self.tools.xy_distance(current, approach) < 0.1:
+			self.status_string = 'approaching loading station...'
+			rospy.loginfo(self.status_string)
+			stamped = PoseStamped(header=approach.header)
+			offset = Pose()
+			offset.position.x = Params().approach_distance
+			offset.orientation.w = 1
+			stamped.pose = self.tools.add_poses(approach.pose, offset)
+			stamped.pose.position.z = -0.01
+			self.actions.approach(stamped, self.approach_loading_station_done_cb, self.approach_timeout_cb)
+		else:
+			self.status_string = 'moving to loading station...'
+			rospy.loginfo(self.status_string)
 			self.actions.move_to(approach, self.preapproach_done_cb, self.move_timeout_cb)
 		self.decision_required = False
 
