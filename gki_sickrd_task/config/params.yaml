@@ -25,6 +25,6 @@ axis_sweep_duration: 2.0
 axis_sweep_angle: 0.3
 smart_loading_station_selection: true
 hack_octa_loading_station: true
-max_merge_distance: 2.0
+max_merge_distance: 1.4
 
 estop_topics: ["/estop", "/joystick_estop"]
