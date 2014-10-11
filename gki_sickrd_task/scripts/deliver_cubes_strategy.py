@@ -180,7 +180,7 @@ class DeliverCubesStrategy(object):
 				for i in range(20):
 					stamped = self.tools.sample_verification_pose(banner, self.percepts.estimate_center_from_map())
 					sampled_poses = []
-					if self.percepts.check_path(start, goal):
+					if self.percepts.check_path(current, stamped):
 						self.status_string = 'moving to look at {}'.format(number)
 						rospy.loginfo(self.status_string)
 						self.actions.move_to(stamped, done_cb=self.move_done_cb, timeout_cb=self.move_timeout_cb)
