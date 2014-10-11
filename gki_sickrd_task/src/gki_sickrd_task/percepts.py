@@ -155,6 +155,27 @@ class Percepts(object):
 		msg.markers.append(self.tools.create_status_marker(text=status_string))
 		self.tools.visualization_publisher.publish(msg)
 
+	def get_best_loading_station(self, current):
+		all = self.get_loading_stations()
+		good = []
+		if Params().smart_loading_station_selection:
+			for loading_station in all:
+				approach_pose = self.sample_approach_pose(loading_station.pose.pose, loading_station.header.frame_id)
+				valid = self.check_path(current, approach_pose)
+				if valid:
+					offset = Pose()
+					offset.position.x = Params().approach_test_distance
+					offset.orientation.w = 1
+					goal = PoseStamped(header=current.header)
+					goal.pose = self.tools.add_poses(approach_pose.pose, offset)
+					valid = self.check_path(approach_pose, goal)
+					if valid:
+						good.append(loading_station)
+		else:
+			good = all
+		good.sort(key=lambda object: self.tools.xy_point_distance(object.pose.pose.position, current.pose.position))
+		return good[0]
+
 	def get_loading_stations(self):
 		center = self.estimate_center_from_map()
 		if not self.model:

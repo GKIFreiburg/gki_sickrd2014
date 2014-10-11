@@ -59,7 +59,7 @@ class Actions(object):
 		self.led_publishers = [rospy.Publisher('/led0', Led), rospy.Publisher('/led1', Led), rospy.Publisher('/led2', Led)]
 		self.verification_timer = None
 		self.cube_timer = None
-		self.no_move_timer = None
+		self.standstill_timer = None
 		self._action = None
 
 		for client in [self.move_base_client, self.approach_client, self.retreat_client, self.camera_ptz_client]:
@@ -91,7 +91,7 @@ class Actions(object):
 		stamped.pose.orientation.w = quat[3]
 		stamped.header.frame_id = 'base_footprint'
 		stamped.header.stamp = rospy.Time.now()
-		self.cancel_no_move_timer()
+		self.cancel_standstill_timer()
 		self.move_to(stamped, done_cb, timeout_cb)
 
 	def move_to(self, stamped, done_cb, timeout_cb):
@@ -102,7 +102,7 @@ class Actions(object):
 		msg.markers.append(self.tools.create_pose_marker(stamped))
 		self.tools.visualization_publisher.publish(msg)
 		self.cancel_all_actions()
-		self.cancel_no_move_timer()
+		self.cancel_standstill_timer()
 		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().move_base_timeout, action_client=self.move_base_client, goal=goal)
 
 	def approach(self, stamped, done_cb, timeout_cb):
@@ -115,7 +115,7 @@ class Actions(object):
 		msg.markers[-1].color.g = 0.8
 		self.tools.visualization_publisher.publish(msg)
 		self.cancel_all_actions()
-		self.cancel_no_move_timer()
+		self.cancel_standstill_timer()
 		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().approach_timeout, action_client=self.approach_client, goal=goal)
 
 	def retreat(self, done_cb, timeout_cb):
@@ -131,7 +131,7 @@ class Actions(object):
 		msg.markers[-1].color.g = 0.5
 		self.tools.visualization_publisher.publish(msg)
 		self.cancel_all_actions()
-		self.cancel_no_move_timer()
+		self.cancel_standstill_timer()
 		self._action = ActionWrapper(done_cb=done_cb, timeout_cb=timeout_cb, timeout=Params().approach_timeout, action_client=self.retreat_client, goal=goal)
 
 	def camera_sweep(self, done_cb, delta_yaw=None, duration=None, zoom=1):
@@ -176,19 +176,22 @@ class Actions(object):
 			self.cube_timer.shutdown()
 
 	def start_cube_operation_timer(self, timeout_cb):
+		if self.cube_timer:
+			if self.cube_timer.is_alive():
+				return
 		self.cube_timer = rospy.Timer(rospy.Duration(Params().cube_timeout), timeout_cb, oneshot=True)
 
-	def start_no_move_timer(self, timeout_cb):
-		if self.no_move_timer:
-			if self.no_move_timer.is_alive():
+	def start_standstill_timer(self, timeout_cb):
+		if self.standstill_timer:
+			if self.standstill_timer.is_alive():
 				return
-		self.no_move_timer = rospy.Timer(rospy.Duration(Params().no_move_timeout), timeout_cb, oneshot=True)
+		self.standstill_timer = rospy.Timer(rospy.Duration(Params().standstill_timeout), timeout_cb, oneshot=True)
 
-	def cancel_no_move_timer(self):
-		if not self.no_move_timer:
+	def cancel_standstill_timer(self):
+		if not self.standstill_timer:
 			return 
-		if self.no_move_timer.is_alive():
-			self.no_move_timer.shutdown()
+		if self.standstill_timer.is_alive():
+			self.standstill_timer.shutdown()
 
 	def cancel_cube_timer(self):
 		if not self.cube_timer:

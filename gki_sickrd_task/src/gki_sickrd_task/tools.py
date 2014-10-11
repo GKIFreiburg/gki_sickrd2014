@@ -217,7 +217,7 @@ class Tools(object):
 		offset.position.x = distance * math.cos(angle)
 		offset.position.y = distance * math.sin(angle)
 		offset.orientation.w = 1
-		offset = self.set_orientation_from_yaw(offset, -angle)
+		offset = self.set_orientation_from_yaw(offset, angle-math.pi)
 		verification = PoseStamped(header=center.header)
 		verification.pose = self.add_poses(banner_pose, offset)
 		return verification
@@ -230,10 +230,10 @@ class Tools(object):
 		if distance < Params().min_verification_distance or distance > Params().max_verification_distance*1.5:
 			rospy.loginfo('bad verification pose: distance {}'.format(distance))
 			return False
-		angle = self._get_facing_angle(robot_frame, banner_frame)
-		#if abs(angle) > Params().max_verification_angle:
-		#	rospy.loginfo('bad verification pose: angle {}'.format(math.degrees(angle)))
-		#	return False
+# 		angle = self._get_facing_angle(robot_frame, banner_frame)
+# 		if abs(angle) > Params().max_verification_angle:
+# 			rospy.loginfo('bad verification pose: angle {}'.format(math.degrees(angle)))
+# 			return False
 		return True
 
 	def is_good_approach_pose(self, stamped, banner):
