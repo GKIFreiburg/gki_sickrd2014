@@ -169,7 +169,7 @@ class Tools(object):
 		origin_frame = pm.fromMsg(origin)
 		target_frame = pm.fromMsg(target)
 		return self._get_viewing_angle(origin_frame, target_frame)
-		
+	
 	def _get_viewing_angle(self, origin_frame, target_frame):
 		origin_normal = origin_frame.M * PyKDL.Vector(1, 0, 0)
 		target_normal = target_frame.M * PyKDL.Vector(1, 0, 0)
@@ -224,15 +224,15 @@ class Tools(object):
 		banner_frame = pm.fromMsg(banner.pose.pose)
 		view_ray = banner_frame.p - robot_frame.p
 		distance = view_ray.Norm()
-		if distance < Params().min_verification_distance or distance > Params().max_verification_distance:
+		if distance < Params().min_verification_distance or distance > Params().max_verification_distance*1.5:
 			rospy.loginfo('bad verification pose: distance {}'.format(distance))
 			return False
 		angle = self._get_facing_angle(robot_frame, banner_frame)
-		if abs(angle) > Params().max_verification_angle:
-			rospy.loginfo('bad verification pose: angle {}'.format(math.degrees(angle)))
-			return False
+		#if abs(angle) > Params().max_verification_angle:
+		#	rospy.loginfo('bad verification pose: angle {}'.format(math.degrees(angle)))
+		#	return False
 		return True
-		
+
 	def is_good_approach_pose(self, stamped, banner):
 		robot_frame = pm.fromMsg(stamped.pose)
 		banner_frame = pm.fromMsg(banner.pose.pose)

@@ -146,7 +146,7 @@ class Actions(object):
 		stamped.header.stamp = rospy.Time(0)
 		ps = Tools.tf_listener.transformPose('axis_link', stamped)
 		yaw = math.atan2(ps.pose.position.y, ps.pose.position.x)
-		pitch = math.atan2(ps.pose.position.z, ps.pose.position.x)
+		pitch = Params().axis_tilt #math.atan2(ps.pose.position.z, ps.pose.position.x)
 		self.look_to(done_cb, yaw, pitch)
 
 	def look_to(self, done_cb, yaw=None, pitch=None, zoom=1):
