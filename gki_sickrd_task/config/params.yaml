@@ -1,6 +1,6 @@
 optimal_exploration_distance: 1.5
-min_verification_distance: 2.0
-max_verification_distance: 5.0
+min_verification_distance: 1.5
+max_verification_distance: 2.0
 max_verification_angle: 0.5235
 verification_duration: 5.0
 approach_distance: 1.0
