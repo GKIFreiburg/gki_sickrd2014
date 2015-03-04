@@ -10,6 +10,7 @@
     <rosparam file="$(find gki_sickrd_executive)/config/global_costmap_params.yaml" command="load" />
     <param name="base_local_planner" value="channel_controller::ChannelController" />
     <rosparam file="$(find gki_sickrd_executive)/config/channel_controller_params.yaml" command="load" />
+    <rosparam file="$(find gki_sickrd_executive)/config/tv_rv_calibration.yaml" command="load" />
 
     <param name="controller_frequency" value="25.0" />
     <param name="controller_patience" value="10.0" />
